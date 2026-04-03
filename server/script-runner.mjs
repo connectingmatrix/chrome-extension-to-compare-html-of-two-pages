@@ -11,7 +11,15 @@ const readConsole = (logs) => ({
 export const runScript = async (baseUrl, payload) => {
     const browser = new Browser(baseUrl);
     const logs = [];
-    const control = { start: async () => (globalThis.browser = browser, true), stop: async () => (delete globalThis.browser, true) };
+    const control = {
+        start: async (options = {}) => {
+            const port = `${options.port || new URL(browser.baseUrl).port || '4017'}`;
+            browser.setBaseUrl(`http://127.0.0.1:${port}`);
+            globalThis.browser = browser;
+            return browser;
+        },
+        stop: async () => (delete globalThis.browser, null)
+    };
     browser.sessionId = payload.sessionId || '';
     await control.start();
     if (payload.pages && payload.pages.length) {
@@ -25,7 +33,7 @@ export const runScript = async (baseUrl, payload) => {
             run(payload.args || [], browser, control, readConsole(logs)),
             new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out while running the script.')), payload.timeoutMs || 120000))
         ]);
-        const pages = await browser.pages();
+        const pages = await browser.sessionPages();
         if (payload.closeOnExit) await browser.close();
         await control.stop();
         const pageIds = [];

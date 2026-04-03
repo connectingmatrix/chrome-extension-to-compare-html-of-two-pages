@@ -21,6 +21,13 @@ export const saveLivePage = (page: LivePage) => {
     return readLivePage(page.pageId);
 };
 
+export const saveTabPage = (tabId: number, values: Partial<LivePage>) => {
+    const page = readTabPage(tabId);
+    if (!page) return null;
+    pages.set(page.pageId, { ...page, ...values, recordingIds: values.recordingIds || page.recordingIds });
+    return readLivePage(page.pageId);
+};
+
 export const patchLivePage = (pageId: string, values: Partial<LivePage>) => {
     const page = pages.get(pageId);
     if (!page) return null;

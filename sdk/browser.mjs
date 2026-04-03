@@ -12,6 +12,15 @@ export class Browser {
             for (const item of this.listeners) if ((!item.name || item.name === event.type || item.name === event.name) && (!item.pageId || item.pageId === event.pageId)) item.handler(event);
         });
     }
+    setBaseUrl(baseUrl = '') {
+        const next = readBaseUrl(baseUrl);
+        if (this.baseUrl !== next) {
+            this.live.close();
+            this.sessionId = '';
+        }
+        this.baseUrl = next;
+        this.live.baseUrl = this.baseUrl;
+    }
     listen(name, pageId, handler) {
         this.listeners.push({ handler, name, pageId });
         return () => { this.listeners = this.listeners.filter((item) => item.handler !== handler || item.name !== name || item.pageId !== pageId); };
@@ -27,13 +36,19 @@ export class Browser {
         return new Page(this, data.pages[0]);
     }
     async pages() {
+        const data = await requestJson(this.baseUrl, '/api/pages/browser');
+        const items = [];
+        for (const item of data.items || []) items.push(new Page(this, item));
+        return items;
+    }
+    async sessionPages() {
         const data = await requestJson(this.baseUrl, `/api/pages/active?sessionId=${encodeURIComponent(this.sessionId || '')}`);
         const items = [];
         for (const item of data.items || []) items.push(new Page(this, item));
         return items;
     }
     async close() {
-        const pages = await this.pages();
+        const pages = await this.sessionPages();
         for (const page of pages) await page.close();
         this.live.close();
         this.sessionId = '';

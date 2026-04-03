@@ -10,13 +10,15 @@ CTM Puppet is a Chrome extension plus local server for trusted browser control, 
 4. `npm run server`
 5. `npm run open:extension -- chrome-extension://YOUR_EXTENSION_ID/sidepanel.html`
 6. Keep the extension page open until `GET http://127.0.0.1:4017/api/instances` shows a connected item
+7. For another Chrome instance, start the server with `PORT=4021 npm run server` and use `const browser = await server.start({ port: 4021 })`
 
 ## SDK First
 
 ```js
 import server from 'ctm-puppet';
 
-await server.start();
+const browser = await server.start({ port: 4017 });
+if (!browser) throw new Error('Please open the CTM Puppet Extension in new tab.');
 const page = await browser.newPage();
 await page.goto('https://developer.chrome.com/', { waitUntil: 'load' });
 await page.setViewport({ width: 1080, height: 1024 });
@@ -49,9 +51,12 @@ await page.iframe[frames[0].frameId].click('#frame-button');
 
 ## Main SDK Surface
 
-- `await server.start()` starts or reuses the local listener and installs `globalThis.browser`
+- `const browser = await server.start()` starts or reuses the local listener and returns the live browser object
+- `const browser = await server.start({ port: 4021 })` targets another CTM Puppet server port
+- if no extension page is connected, `server.start()` returns `null`
 - `await browser.newPage(url?, options?)`
-- `await browser.pages()`
+- `await browser.pages()` returns all open browser tabs bound as CTM Puppet pages
+- `await browser.sessionPages()` returns only pages opened in the current CTM Puppet session
 - `await browser.close()`
 - `await page.goto(url, options?)`
 - `await page.reload(options?)`
@@ -83,6 +88,7 @@ await page.iframe[frames[0].frameId].click('#frame-button');
 Live routes:
 - `POST /api/pages/open`
 - `GET /api/pages/active`
+- `GET /api/pages/browser`
 - `POST /api/pages/actions`
 - `POST /api/pages/diff`
 - `POST /api/pages/data`
@@ -116,6 +122,36 @@ Live socket:
 ```
 
 Actions passed to `POST /api/pages/open` may use `role` instead of `pageId`.
+
+## Bind Existing Browser Tabs
+
+`browser.pages()` returns all normal browser tabs that the connected extension can see, and each item is already bindable with a `pageId`.
+
+```js
+const browser = await server.start({ port: 4017 });
+if (!browser) throw new Error('Please open the CTM Puppet Extension in new tab.');
+const pages = await browser.pages();
+for (const page of pages) {
+  console.log({
+    pageId: page.pageId,
+    tabId: page.tabId,
+    pageName: page.pageName,
+    pageUrl: page.pageUrl,
+    pageStats: page.pageStats
+  });
+}
+```
+
+Returned page fields:
+- `pageId`
+- `tabId`
+- `pageName`
+- `pageUrl`
+- `pageStats.ram`
+- `pageStats.cpu`
+- `pageStats.heapUsage`
+
+`pageStats` comes from the best live debugger metrics exposed by Chrome for that tab. `cpu` is the current task-duration metric, `heapUsage` is used JS heap, and `ram` is the current heap allocation size reported for the page runtime.
 
 ## Action Arrays
 
@@ -185,7 +221,7 @@ Supported selector syntax:
 ```json
 {
   "pages": [{ "url": "http://127.0.0.1:4017/examples/search.html", "waitUntil": "load" }],
-  "script": "await server.start(); const page = (await browser.pages())[0]; await page.locator('::-p-aria(Search)').fill('gamma'); await page.click(\"[role='option']\", { index: 2 }); return await page.data('#search', { snapshot: true });",
+  "script": "const browser = await server.start({ port: 4017 }); if (!browser) throw new Error('Please open the CTM Puppet Extension in new tab.'); const page = await browser.newPage('http://127.0.0.1:4017/examples/search.html'); await page.locator('::-p-aria(Search)').fill('gamma'); await page.click(\"[role='option']\", { index: 2 }); return await page.data('#search', { snapshot: true });",
   "closeOnExit": true
 }
 ```

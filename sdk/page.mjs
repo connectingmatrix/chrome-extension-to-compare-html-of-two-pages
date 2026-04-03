@@ -24,7 +24,11 @@ export class Page {
         this.iframe = new Proxy((value) => this.frame(value), { get: (_target, key) => this.frame(Number(key) || 0) });
         this.keyboard = new Keyboard(this);
         this.pageId = item.pageId;
+        this.pageName = item.pageName || item.title || '';
+        this.pageStats = item.pageStats || { cpu: 0, heapUsage: 0, ram: 0 };
+        this.pageUrl = item.pageUrl || item.url || '';
         this.sessionId = item.sessionId || browser.sessionId;
+        this.tabId = item.tabId || 0;
         this.url = item.url || '';
     }
     run(actions) {

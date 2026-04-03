@@ -14,11 +14,11 @@ const readPage = (pageId: string) => {
     if (!page) throw new Error(`No active page matches ${pageId}`);
     return page;
 };
-export const readPublicPage = (page: LivePage) => ({ height: page.height, instanceId: page.instanceId, pageId: page.pageId, recordingIds: [...page.recordingIds], role: page.role, sessionId: page.sessionId, status: page.status, title: page.title, url: page.url, width: page.width });
+export const readPublicPage = (page: LivePage) => ({ height: page.height, instanceId: page.instanceId, pageId: page.pageId, pageName: page.pageName, pageStats: page.pageStats, pageUrl: page.pageUrl, recordingIds: [...page.recordingIds], role: page.role, sessionId: page.sessionId, status: page.status, tabId: page.tabId || 0, title: page.title, url: page.url, width: page.width });
 const readMeta = async (pageId: string, status = 'ready') => {
     const page = readPage(pageId);
     const meta = await readTabMeta(page.tabId || 0);
-    return patchLivePage(pageId, { ...meta, status }) as LivePage;
+    return patchLivePage(pageId, { ...meta, pageName: meta.title, pageUrl: meta.url, status }) as LivePage;
 };
 
 export const openLivePages = async (instanceId: string, sessionId: string, items: PageOpenItem[], emit: LiveEmit) => {
@@ -30,7 +30,7 @@ export const openLivePages = async (instanceId: string, sessionId: string, items
         const tabId = await openPageTab(item.url, settings.debugForeground, item.waitUntil || 'load');
         if (item.width && item.height) await resizeViewport(tabId, { height: item.height, name: item.role || 'page', width: item.width });
         const meta = await readTabMeta(tabId);
-        const page = saveLivePage({ height: item.height || meta.height, instanceId, pageId, recordingIds: [], role: item.role || 'page', sessionId, status: 'ready', tabId, title: meta.title, url: meta.url, width: item.width || meta.width }) as LivePage;
+        const page = saveLivePage({ height: item.height || meta.height, instanceId, pageId, pageName: meta.title, pageStats: { cpu: 0, heapUsage: 0, ram: 0 }, pageUrl: meta.url, recordingIds: [], role: item.role || 'page', sessionId, status: 'ready', tabId, title: meta.title, url: meta.url, width: item.width || meta.width }) as LivePage;
         emit('page.opened', readPublicPage(page), sessionId);
         pages.push(page);
     }

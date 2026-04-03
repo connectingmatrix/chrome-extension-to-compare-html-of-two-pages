@@ -9,10 +9,19 @@ export interface PageOpenItem {
     width?: number;
 }
 
+export interface PageStats {
+    cpu: number;
+    heapUsage: number;
+    ram: number;
+}
+
 export interface LivePage {
     height: number;
     instanceId: string;
     pageId: string;
+    pageName: string;
+    pageStats: PageStats;
+    pageUrl: string;
     recordingIds: string[];
     role: string;
     sessionId: string;
@@ -62,6 +71,10 @@ export interface PageHtmlPayload {
 
 export interface PageFramesPayload {
     pageId: string;
+}
+
+export interface PageBrowserPayload {
+    sessionId?: string;
 }
 
 export interface PageScreenshotPayload {

@@ -7,9 +7,22 @@ export class LocalServer {
         this.baseUrl = readBaseUrl(baseUrl);
         this.process = null;
     }
-    async start() {
-        globalThis.browser = browser;
-        if (this.process) return this.process;
+    async start(options = {}) {
+        const port = `${options.port || new URL(this.baseUrl).port || '4017'}`;
+        const baseUrl = `http://127.0.0.1:${port}`;
+        if (this.baseUrl !== baseUrl && this.process) this.stop();
+        this.baseUrl = baseUrl;
+        browser.setBaseUrl(baseUrl);
+        globalThis.browser = null;
+        if (this.process) {
+            const response = await fetch(`${this.baseUrl}/api/instances`);
+            const data = await response.json();
+            if (data.items && data.items.length) {
+                globalThis.browser = browser;
+                return browser;
+            }
+            return null;
+        }
         try {
             const response = await fetch(`${this.baseUrl}/api/health`);
             if (response.ok) {
@@ -18,14 +31,16 @@ export class LocalServer {
                     try {
                         const ready = await fetch(`${this.baseUrl}/api/instances`);
                         const data = await ready.json();
-                        if (data.items && data.items.length) return null;
+                        if (data.items && data.items.length) {
+                            globalThis.browser = browser;
+                            return browser;
+                        }
                     } catch {}
                     await new Promise((resolve) => setTimeout(resolve, 200));
                 }
                 return null;
             }
         } catch {}
-        const port = `${new URL(this.baseUrl).port || '4017'}`;
         this.process = spawn('node', ['server/index.mjs'], { cwd: new URL('..', import.meta.url), env: { ...process.env, PORT: port }, stdio: 'inherit' });
         const endsAt = Date.now() + 15000;
         while (Date.now() < endsAt) {
@@ -37,11 +52,14 @@ export class LocalServer {
                         try {
                             const ready = await fetch(`${this.baseUrl}/api/instances`);
                             const data = await ready.json();
-                            if (data.items && data.items.length) return this.process;
+                            if (data.items && data.items.length) {
+                                globalThis.browser = browser;
+                                return browser;
+                            }
                         } catch {}
                         await new Promise((resolve) => setTimeout(resolve, 200));
                     }
-                    return this.process;
+                    return null;
                 }
             } catch {}
             await new Promise((resolve) => setTimeout(resolve, 200));

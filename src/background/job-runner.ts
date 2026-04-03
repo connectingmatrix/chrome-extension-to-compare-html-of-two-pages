@@ -1,4 +1,5 @@
 import { readCompareResult, readInspectResult } from '@/src/background/result-shape';
+import { listBrowserPages } from '@/src/background/page-browser-work';
 import { bindPageActions, runLiveActions } from '@/src/background/page-action-work';
 import { closeLiveSessionPage, listPageFrames, LiveEmit, openLivePages, readLiveHtml, readLiveShot, readPageState, readPublicPage } from '@/src/background/page-session-work';
 import { captureLiveTab, capturePageTab } from '@/src/background/tab-work';
@@ -72,6 +73,7 @@ export const runRemoteJob = async (job: RemoteJob, instanceId: string, emit: Liv
         for (const page of pages) items.push(readPublicPage(page));
         return { pages: items, sessionId: pages[0] ? pages[0].sessionId : payload.sessionId || '' };
     }
+    if (job.kind === 'pages-browser') return { items: await listBrowserPages(instanceId) };
     if (job.kind === 'pages-actions') return { results: await runLiveActions((job.payload as any).actions || [], emit) };
     if (job.kind === 'pages-data') return readInspectResult(await captureLiveTab(readPageState((job.payload as any).pageId).tabId || 0, (job.payload as any).selector, (job.payload as any).path || 'root'), Boolean((job.payload as any).snapshot));
     if (job.kind === 'pages-diff') {

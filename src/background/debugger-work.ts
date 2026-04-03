@@ -49,6 +49,15 @@ export const captureScreenshot = async (tabId: number, clip = null) => {
     return result.data || '';
 };
 
+export const readPageStats = async (tabId: number) => {
+    await sendDebug(tabId, 'Performance.enable');
+    const heap = await sendDebug(tabId, 'Runtime.getHeapUsage');
+    const report = await sendDebug(tabId, 'Performance.getMetrics');
+    let cpu = 0;
+    for (const item of report.metrics || []) if (item.name === 'TaskDuration') cpu = item.value || 0;
+    return { cpu, heapUsage: heap.usedSize || 0, ram: heap.totalSize || 0 };
+};
+
 export const closeDebugTab = async (tabId: number) => {
     if (!attached.has(tabId)) return;
     await clearViewport(tabId);

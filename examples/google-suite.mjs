@@ -1,6 +1,7 @@
 import server from '../sdk/index.mjs';
 
-await server.start();
+const browser = await server.start({ port: 4017 });
+if (!browser) throw new Error('Please open the CTM Puppet Extension in new tab.');
 const page = await browser.newPage('https://www.google.com/', { waitUntil: 'load' });
 await page.waitForSelector("textarea[name='q']", { timeoutMs: 30000 });
 await page.locator("textarea[name='q']").fill('ctm puppet chrome extension');

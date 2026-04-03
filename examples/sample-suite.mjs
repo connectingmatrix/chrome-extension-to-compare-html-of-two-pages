@@ -1,6 +1,7 @@
 import server from '../sdk/index.mjs';
 
-await server.start();
+const browser = await server.start({ port: 4017 });
+if (!browser) throw new Error('Please open the CTM Puppet Extension in new tab.');
 const search = await browser.newPage('http://127.0.0.1:4017/examples/search.html', { waitUntil: 'load' });
 await search.locator("::-p-aria(Search)").fill('beta');
 await search.click("[role='option']", { index: 1 });

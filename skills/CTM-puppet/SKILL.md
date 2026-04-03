@@ -5,10 +5,11 @@ description: Use when you need live page sessions, trusted browser control, scre
 
 # CTM Puppet
 
-Run `skills/CTM-puppet/scripts/start_ctm_puppet.sh` first. Pass the extension page URL if it is not saved yet.
+Run `skills/CTM-puppet/scripts/start_ctm_puppet.sh` first. Pass the extension page URL if it is not saved yet. Pass a second argument if you want a custom server port.
 
 Use this skill for:
 - opening one or two persistent pages and keeping their `pageId`s
+- binding existing browser tabs through `browser.pages()`
 - driving pages with clicks, typing, keys, drag/drop, scroll, navigation, resize, screenshots, uploads, and scripts
 - diffing DOM trees, classes, styles, and layout data across two live pages
 - running Puppeteer-style `browser/page/locator` scripts through the SDK or `POST /api/pages/run`
@@ -16,8 +17,10 @@ Use this skill for:
 Workflow:
 1. Start the server and open the extension page:
    `skills/CTM-puppet/scripts/start_ctm_puppet.sh chrome-extension://efnpdobifdpehhodkecgddbplgkkeogo/sidepanel.html`
-2. Keep the extension page open until `GET http://127.0.0.1:4017/api/instances` shows a connected instance.
-3. For persistent work call `POST /api/pages/open`, keep the returned `sessionId` and `pageId`s, then use:
+2. For another Chrome instance use a custom port:
+   `skills/CTM-puppet/scripts/start_ctm_puppet.sh chrome-extension://efnpdobifdpehhodkecgddbplgkkeogo/sidepanel.html 4021`
+3. Keep the extension page open until `GET http://127.0.0.1:4017/api/instances` or the matching custom-port URL shows a connected instance.
+4. For persistent work call `POST /api/pages/open`, keep the returned `sessionId` and `pageId`s, then use:
 - `POST /api/pages/actions`
 - `POST /api/pages/data`
 - `POST /api/pages/diff`
@@ -26,14 +29,17 @@ Workflow:
 - `POST /api/pages/screenshot`
 - `POST /api/pages/run`
 - `POST /api/pages/close`
-4. For one-shot compare flows you can still use:
+5. For one-shot compare flows you can still use:
 - `POST /api/compare/pages`
 - `POST /api/compare/selector`
 - `POST /api/inspect/selector`
 
 SDK shape:
 - `import server from 'ctm-puppet'`
-- `await server.start()`
+- `const browser = await server.start({ port: 4017 })`
+- `if (!browser) throw new Error('Please open the CTM Puppet Extension in new tab.')`
+- `await browser.pages()` for all open browser tabs
+- `await browser.sessionPages()` for CTM Puppet session tabs only
 - `const page = await browser.newPage()`
 - `await page.goto(url)`
 - `await page.locator(selector).fill(value)`
@@ -69,5 +75,7 @@ Useful files:
 
 Notes:
 - The opener resolves the extension URL from the explicit argument, `CTM_PUPPET_EXTENSION_URL`, live `/api/instances`, or `.ctm-puppet.local.json`.
+- `server.start({ port: CUSTOM_PORT })` lets you target a different CTM Puppet server for another Chrome instance.
+- `skills/CTM-puppet/scripts/start_ctm_puppet.sh EXTENSION_URL CUSTOM_PORT` starts and opens the matching port pair.
 - Each open extension page is a separate live instance.
 - Page sessions are in memory and disappear if the server restarts or the extension page closes.

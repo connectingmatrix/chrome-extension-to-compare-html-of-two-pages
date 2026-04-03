@@ -31,6 +31,14 @@ const runLiveJob = async (response, kind, payload, body) => {
 router.get('/health', (_request, response) => response.json({ ok: true }));
 router.get('/instances', (_request, response) => response.json({ items: listInstances(), ok: true }));
 router.get('/pages/active', (request, response) => response.json({ items: listPages(request.query.sessionId || ''), ok: true }));
+router.get('/pages/browser', async (request, response) => {
+    try {
+        const result = await createJob('pages-browser', { sessionId: request.query.sessionId || '' }, `${request.query.instanceId || ''}`, 45000);
+        response.json({ ok: true, ...result.result });
+    } catch (error) {
+        response.status(409).json({ error: error.message, ok: false });
+    }
+});
 router.post('/compare/pages', (request, response) => runLegacyJob(response, 'compare-pages', { actions: request.body.actions || [], leftUrl: request.body.leftUrl, path: request.body.path || 'root', rightUrl: request.body.rightUrl, selector: request.body.selector || 'body', sizes: request.body.sizes, snapshot: Boolean(request.body.snapshot) }, request.body));
 router.post('/compare/selector', (request, response) => runLegacyJob(response, 'compare-selector', { actions: request.body.actions || [], leftUrl: request.body.leftUrl, rightUrl: request.body.rightUrl, selector: request.body.selector, sizes: request.body.sizes, snapshot: Boolean(request.body.snapshot) }, request.body));
 router.post('/inspect/selector', (request, response) => runLegacyJob(response, 'inspect-selector', { actions: request.body.actions || [], path: request.body.path || 'root', selector: request.body.selector, snapshot: Boolean(request.body.snapshot), url: request.body.url }, request.body));
