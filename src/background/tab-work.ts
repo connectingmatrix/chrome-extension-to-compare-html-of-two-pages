@@ -1,6 +1,7 @@
 import { closeDebugTab, ensureDebugTab } from '@/src/background/debugger-work';
 import { uploadFiles } from '@/src/background/file-upload-work';
 import { watchGraphql } from '@/src/background/graphql-wait';
+import { dropInterceptRules } from '@/src/background/intercept-work';
 import { readPageHtmlTarget } from '@/src/background/page-html-read';
 import { waitForLoadState } from '@/src/background/page-load-work';
 import { runPageDomAction } from '@/src/background/page-dom-work';
@@ -69,6 +70,14 @@ export const capturePageTab = async (tabId: number, selector: string, path: stri
     }
 };
 
+export const captureLiveTab = async (tabId: number, selector: string, path: string, size = null) => {
+    const snapshot = await runFrameScript(tabId, 0, readDomSnapshot, [selector]);
+    if (snapshot.error) throw new Error(snapshot.error);
+    const detail = await runFrameScript(tabId, 0, readNodeDetail, [selector, path]);
+    if (detail.error) throw new Error(detail.error);
+    return { detail, size, snapshot, tabId };
+};
+
 export const runPageAction = async (tabId: number, action) => {
     if (action.type === 'upload_files') return uploadFiles(tabId, action.selector || '', action.index || 0, action.files || []);
     if (action.type === 'wait_for_selector') return runFrameScript(tabId, action.frameId || 0, waitForPageTarget, [action.selector || '', action.index || 0, Boolean(action.visible), action.timeoutMs || 30000, 200]);
@@ -90,6 +99,7 @@ export const readTabMeta = async (tabId: number) => {
 };
 
 export const closePageTab = async (tabId: number) => {
+    dropInterceptRules(tabId);
     await closeDebugTab(tabId);
     await chrome.tabs.remove(tabId);
 };

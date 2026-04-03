@@ -1,4 +1,5 @@
 import { ensureDebugEvents } from '@/src/background/debug-live-work';
+import { ensureInterceptWork } from '@/src/background/intercept-work';
 import { ScreenSize } from '@/src/shared/remote-types';
 
 const attached = new Set<number>();
@@ -8,6 +9,7 @@ const readTarget = (tabId: number) => ({ tabId });
 
 export const ensureDebugTab = async (tabId: number) => {
     ensureDebugEvents();
+    ensureInterceptWork();
     if (!attached.has(tabId)) {
         await chrome.debugger.attach(readTarget(tabId), version);
         attached.add(tabId);

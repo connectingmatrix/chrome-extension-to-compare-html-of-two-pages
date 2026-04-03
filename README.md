@@ -1,24 +1,86 @@
-# HTML-Inspect
+# CTM Puppet
 
-HTML-Inspect is a Chrome extension plus local server for live page sessions, trusted browser control, DOM/style diffs, screenshots, and script-driven inspection.
+CTM Puppet is a Chrome extension plus local server for trusted browser control, live page sessions, DOM/style diffs, screenshots, and scriptable inspection. Every non-`/api` route returns this file as `text/markdown`, so AI clients can discover the contract from `GET /`, `GET /docs`, or any other non-API path.
 
-Every non-`/api` HTTP route returns this file as `text/markdown`, so AI systems can discover the integration contract from:
-- `GET /`
-- `GET /docs`
-- `GET /anything-not-api`
-
-## Start
+## Quick Start
 
 1. `npm install`
 2. `npm run build`
-3. Load `/Users/abeer/dev/chrome_extension_utils/dist` as an unpacked extension
+3. Load `/Users/abeer/dev/chrome_extension_utils/dist` as an unpacked Chrome extension
 4. `npm run server`
-5. Open the extension page with `npm run open:extension`
-6. Keep the extension page open until `GET http://127.0.0.1:4017/api/instances` shows at least one connected item
+5. `npm run open:extension -- chrome-extension://YOUR_EXTENSION_ID/sidepanel.html`
+6. Keep the extension page open until `GET http://127.0.0.1:4017/api/instances` shows a connected item
 
-## Main Routes
+## SDK First
 
-Live session routes:
+```js
+import server from 'ctm-puppet';
+
+await server.start();
+const page = await browser.newPage();
+await page.goto('https://developer.chrome.com/', { waitUntil: 'load' });
+await page.setViewport({ width: 1080, height: 1024 });
+await page.keyboard.press('/');
+await page.locator('::-p-aria(Search)').fill('automate beyond recorder');
+await page.locator('.devsite-result-item-link').click({ waitUntil: 'networkidle2' });
+const titleHandle = await page.locator('::-p-text(Customize and automate)').waitHandle();
+const title = await titleHandle.evaluate((node) => node.textContent);
+page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
+await page.evaluate(() => console.log(`url is ${location.href}`));
+await browser.close();
+```
+
+### More SDK patterns
+
+```js
+await page.setRequestInterception(true);
+page.on('request', async (request) => {
+  if (request.isInterceptResolutionHandled()) return;
+  if (request.url().endsWith('.png') || request.url().endsWith('.jpg')) await request.abort();
+  else await request.continue();
+});
+await page.goto('https://example.com', { waitUntil: 'networkidle2' });
+await page.screenshot({ path: '/tmp/example.png' });
+const fileInput = await page.waitForSelector('input[type=file]');
+await fileInput.uploadFile(['/absolute/path/file.txt']);
+const frames = await page.iframes();
+await page.iframe[frames[0].frameId].click('#frame-button');
+```
+
+## Main SDK Surface
+
+- `await server.start()` starts or reuses the local listener and installs `globalThis.browser`
+- `await browser.newPage(url?, options?)`
+- `await browser.pages()`
+- `await browser.close()`
+- `await page.goto(url, options?)`
+- `await page.reload(options?)`
+- `await page.setViewport({ width, height })`
+- `await page.setRequestInterception(true | false)`
+- `page.on('console' | 'request' | 'navigation' | 'network.request', handler)`
+- `page.locator(selector)`
+- `await page.waitForSelector(selector, options?)`
+- `await page.click(selector, options?)`
+- `await page.type(selector, value, options?)`
+- `await page.keyboard.press(key, options?)`
+- `await page.select(selector, value, options?)`
+- `await page.dragAndDrop(sourceSelector, targetSelector, options?)`
+- `await page.scroll(options?)`
+- `await page.submit(selector, options?)`
+- `await page.evaluate(scriptOrFunction, ...args)`
+- `await page.html(selector?)`
+- `await page.data(selector, { snapshot })`
+- `await page.screenshot({ selector, fullPage, path })`
+- `await page.compare(otherPage, options?)`
+- `await page.compareSelector(selector, otherPage.selectorTree(selector), { snapshot: true })`
+- `await page.frames()`
+- `await page.iframes()`
+- `page.frame(frameId)` and `page.iframe[frameId]`
+- `await page.close()`
+
+## REST Routes
+
+Live routes:
 - `POST /api/pages/open`
 - `GET /api/pages/active`
 - `POST /api/pages/actions`
@@ -30,7 +92,7 @@ Live session routes:
 - `POST /api/pages/run`
 - `POST /api/pages/close`
 
-Legacy one-shot routes:
+Legacy routes:
 - `POST /api/compare/pages`
 - `POST /api/compare/selector`
 - `POST /api/inspect/selector`
@@ -39,12 +101,10 @@ Utility routes:
 - `GET /api/health`
 - `GET /api/instances`
 
-Live event socket:
+Live socket:
 - `ws://127.0.0.1:4017/api/live`
 
 ## Open Pages
-
-Open one or two pages and keep their `pageId`s:
 
 ```json
 {
@@ -55,265 +115,99 @@ Open one or two pages and keep their `pageId`s:
 }
 ```
 
-Response:
-
-```json
-{
-  "ok": true,
-  "sessionId": "session-id",
-  "pages": [
-    {
-      "pageId": "page-id",
-      "role": "left",
-      "url": "http://127.0.0.1:4017/examples/compare-left.html",
-      "width": 1440,
-      "height": 900,
-      "status": "ready",
-      "instanceId": "extension-instance-id",
-      "recordingIds": []
-    }
-  ]
-}
-```
+Actions passed to `POST /api/pages/open` may use `role` instead of `pageId`.
 
 ## Action Arrays
-
-Send ordered actions with `POST /api/pages/actions`:
 
 ```json
 {
   "actions": [
-    { "type": "wait_for_selector", "pageId": "page-id", "selector": "textarea[name='q']", "visible": true, "timeoutMs": 30000 },
-    { "type": "type_text", "pageId": "page-id", "selector": "textarea[name='q']", "value": "html inspect", "clearFirst": true },
-    { "type": "click", "pageId": "page-id", "selector": "[role='option']", "index": 2, "waitUntil": "load" },
-    { "type": "scroll", "pageId": "page-id", "deltaY": 900 }
+    { "type": "wait_for_selector", "pageId": "PAGE_ID", "selector": "textarea[name='q']", "visible": true, "timeoutMs": 30000 },
+    { "type": "type_text", "pageId": "PAGE_ID", "selector": "textarea[name='q']", "value": "ctm puppet chrome extension", "clearFirst": true },
+    { "type": "click", "pageId": "PAGE_ID", "selector": "[role='option']", "index": 1, "waitUntil": "networkidle2" },
+    { "type": "scroll", "pageId": "PAGE_ID", "deltaY": 900 }
   ]
 }
 ```
 
-When `actions` are passed to `POST /api/pages/open` or to legacy compare routes, each action may use `role` instead of `pageId`.
-
 ## Action Reference
 
-`click`
-- request:
-  `{ "type": "click", "pageId": "page-id", "selector": ".button", "index": 0, "button": "left", "waitUntil": "load" }`
-- SDK:
-  `await page.click('.button', { index: 0, waitUntil: 'load' })`
+- `click`: `await page.click('.button', { index: 0, waitUntil: 'load' })`
+  raw: `{ "type": "click", "pageId": "PAGE_ID", "selector": ".button", "index": 0, "waitUntil": "load" }`
+- `type_text`: `await page.type("input[name='q']", 'hello', { clearFirst: true })`
+  raw: `{ "type": "type_text", "pageId": "PAGE_ID", "selector": "input[name='q']", "value": "hello", "clearFirst": true }`
+- `send_key`: `await page.keyboard.press('Enter')`
+  raw: `{ "type": "send_key", "pageId": "PAGE_ID", "key": "Enter" }`
+- `select_option`: `await page.select("select[name='country']", 'jp')`
+  raw: `{ "type": "select_option", "pageId": "PAGE_ID", "selector": "select[name='country']", "value": "jp" }`
+- `drag_drop`: `await page.dragAndDrop('.card', '#target')`
+  raw: `{ "type": "drag_drop", "pageId": "PAGE_ID", "sourceSelector": ".card", "targetSelector": "#target" }`
+- `scroll`: `await page.scroll({ deltaY: 900 })`
+  raw: `{ "type": "scroll", "pageId": "PAGE_ID", "deltaY": 900 }`
+- `submit`: `await page.submit('#demo-form')`
+  raw: `{ "type": "submit", "pageId": "PAGE_ID", "selector": "#demo-form" }`
+- `wait_for_selector`: `await page.waitForSelector('#ready', { timeoutMs: 30000 })`
+  raw: `{ "type": "wait_for_selector", "pageId": "PAGE_ID", "selector": "#ready", "visible": true, "timeoutMs": 30000 }`
+- `reload_page`: `await page.reload({ waitUntil: 'networkidle2' })`
+  raw: `{ "type": "reload_page", "pageId": "PAGE_ID", "waitUntil": "networkidle2" }`
+- `change_screen_size`: `await page.setViewport({ width: 1024, height: 700 })`
+  raw: `{ "type": "change_screen_size", "pageId": "PAGE_ID", "width": 1024, "height": 700 }`
+- `navigate_to_url`: `await page.goto('https://example.com', { waitUntil: 'load' })`
+  raw: `{ "type": "navigate_to_url", "pageId": "PAGE_ID", "url": "https://example.com", "waitUntil": "load" }`
+- `get_page_diff`: `await left.compare(right, { selector: '.card', snapshot: true })`
+  raw: `{ "type": "get_page_diff", "leftPageId": "LEFT_ID", "rightPageId": "RIGHT_ID", "selector": ".card", "snapshot": true }`
+- `get_page_data`: `await page.data('.card', { snapshot: true })`
+  raw: `{ "type": "get_page_data", "pageId": "PAGE_ID", "selector": ".card", "snapshot": true }`
+- `get_page_html`: `await page.html('#main')`
+  raw: `{ "type": "get_page_html", "pageId": "PAGE_ID", "selector": "#main" }`
+- `screenshot_page`: `await page.screenshot({ selector: '#main', path: '/tmp/main.png' })`
+  raw: `{ "type": "screenshot_page", "pageId": "PAGE_ID", "selector": "#main", "fullPage": false }`
+- `close_page`: `await page.close()`
+  raw: `{ "type": "close_page", "pageId": "PAGE_ID" }`
+- `intercept_request`: `await page.run([{ type: 'intercept_request', pageId: page.pageId, ruleId: 'observe-all', mode: 'observe', match: { urlPattern: '*' } }])`
+  raw: `{ "type": "intercept_request", "pageId": "PAGE_ID", "ruleId": "observe-all", "mode": "observe", "match": { "urlPattern": "*" } }`
+- `record_start`: `await page.run([{ type: 'record_start', pageId: page.pageId, recordId: 'header', selector: '.header', include: ['classes', 'styles', 'tree'] }])`
+  raw: `{ "type": "record_start", "pageId": "PAGE_ID", "recordId": "header", "selector": ".header", "include": ["classes", "styles", "tree"] }`
+- `record_stop`: `await page.run([{ type: 'record_stop', pageId: page.pageId, recordId: 'header' }])`
+  raw: `{ "type": "record_stop", "pageId": "PAGE_ID", "recordId": "header" }`
+- `execute_script`: `await page.evaluate(() => ({ href: location.href, title: document.title }))`
+  raw: `{ "type": "execute_script", "pageId": "PAGE_ID", "script": "return { href: location.href, title: document.title };" }`
+- `upload_files`: `await page.waitForSelector('#file-input').then((handle) => handle.uploadFile(['/absolute/path/file.txt']))`
+  raw: `{ "type": "upload_files", "pageId": "PAGE_ID", "selector": "#file-input", "files": ["/absolute/path/file.txt"] }`
 
-`type_text`
-- request:
-  `{ "type": "type_text", "pageId": "page-id", "selector": "input[name='q']", "value": "hello", "clearFirst": true }`
-- SDK:
-  `await page.type("input[name='q']", 'hello', { clearFirst: true })`
-  `await page.locator("input[name='q']").fill('hello')`
-
-`send_key`
-- request:
-  `{ "type": "send_key", "pageId": "page-id", "selector": "input[name='q']", "key": "Enter" }`
-- SDK:
-  `await page.keyboard.press('Enter')`
-  `await page.locator("input[name='q']").press('Enter')`
-
-`select_option`
-- request:
-  `{ "type": "select_option", "pageId": "page-id", "selector": "select[name='country']", "value": "jp" }`
-- SDK:
-  `await page.select("select[name='country']", 'jp')`
-
-`drag_drop`
-- request:
-  `{ "type": "drag_drop", "pageId": "page-id", "sourceSelector": ".card", "targetSelector": "#target" }`
-- SDK:
-  `await page.dragAndDrop('.card', '#target')`
-
-`scroll`
-- request:
-  `{ "type": "scroll", "pageId": "page-id", "deltaY": 900 }`
-- SDK:
-  `await page.scroll({ deltaY: 900 })`
-
-`submit`
-- request:
-  `{ "type": "submit", "pageId": "page-id", "selector": "form" }`
-- SDK:
-  `await page.submit('form')`
-
-`wait_for_selector`
-- request:
-  `{ "type": "wait_for_selector", "pageId": "page-id", "selector": "#ready", "visible": true, "timeoutMs": 30000 }`
-- SDK:
-  `await page.locator('#ready').wait({ timeoutMs: 30000 })`
-
-`reload_page`
-- request:
-  `{ "type": "reload_page", "pageId": "page-id", "waitUntil": "networkidle2" }`
-- SDK:
-  `await page.reload({ waitUntil: 'networkidle2' })`
-
-`change_screen_size`
-- request:
-  `{ "type": "change_screen_size", "pageId": "page-id", "width": 1024, "height": 700 }`
-- SDK:
-  `await page.setViewport({ width: 1024, height: 700 })`
-
-`navigate_to_url`
-- request:
-  `{ "type": "navigate_to_url", "pageId": "page-id", "url": "https://example.com", "waitUntil": "load" }`
-- SDK:
-  `await page.goto('https://example.com', { waitUntil: 'load' })`
-
-`get_page_diff`
-- request:
-  `{ "type": "get_page_diff", "leftPageId": "left-page-id", "rightPageId": "right-page-id", "selector": ".card", "snapshot": true }`
-- SDK:
-  `await leftPage.compare(rightPage, { selector: '.card', snapshot: true })`
-
-`get_page_data`
-- request:
-  `{ "type": "get_page_data", "pageId": "page-id", "selector": ".card", "snapshot": true }`
-- SDK:
-  `await page.data('.card', { snapshot: true })`
-
-`get_page_html`
-- request:
-  `{ "type": "get_page_html", "pageId": "page-id", "selector": "#main" }`
-- SDK:
-  `await page.html('#main')`
-
-`screenshot_page`
-- request:
-  `{ "type": "screenshot_page", "pageId": "page-id", "selector": "#main", "fullPage": false }`
-- SDK:
-  `await page.screenshot({ selector: '#main', fullPage: false })`
-
-`close_page`
-- request:
-  `{ "type": "close_page", "pageId": "page-id" }`
-- SDK:
-  `await page.close()`
-
-`intercept_request`
-- request:
-  `{ "type": "intercept_request", "pageId": "page-id", "ruleId": "observe-all", "mode": "observe", "match": { "urlPattern": "*", "method": "GET" } }`
-- SDK:
-  `await page.run([{ type: 'intercept_request', pageId: page.pageId, ruleId: 'observe-all', mode: 'observe', match: { urlPattern: '*' } }])`
-
-`record_start`
-- request:
-  `{ "type": "record_start", "pageId": "page-id", "recordId": "header", "selector": ".header", "include": ["classes", "styles", "tree"] }`
-- SDK:
-  `await page.run([{ type: 'record_start', pageId: page.pageId, recordId: 'header', selector: '.header', include: ['classes', 'styles', 'tree'] }])`
-
-`record_stop`
-- request:
-  `{ "type": "record_stop", "pageId": "page-id", "recordId": "header" }`
-- SDK:
-  `await page.run([{ type: 'record_stop', pageId: page.pageId, recordId: 'header' }])`
-
-`execute_script`
-- request:
-  `{ "type": "execute_script", "pageId": "page-id", "script": "return { href: location.href, title: document.title };" }`
-- SDK:
-  `await page.evaluate(() => ({ href: location.href, title: document.title }))`
-
-`upload_files`
-- request:
-  `{ "type": "upload_files", "pageId": "page-id", "selector": "#file-input", "files": ["/absolute/path/file.txt"] }`
-- SDK:
-  `await page.locator('#file-input').uploadFile(['/absolute/path/file.txt'])`
-
-Supported selector inputs for actions and SDK locators:
+Supported selector syntax:
 - CSS selectors
 - `::-p-text(...)`
 - `::-p-aria(...)`
 
 ## `/api/pages/run`
 
-Run JS directly against the live session service:
-
 ```json
 {
   "pages": [{ "url": "http://127.0.0.1:4017/examples/search.html", "waitUntil": "load" }],
-  "script": "const page = (await browser.pages())[0]; await page.locator('::-p-aria(Search)').fill('gamma'); await page.click(\"[role='option']\", { index: 2, waitUntil: 'load' }); return await page.data('#search', { snapshot: true });",
+  "script": "await server.start(); const page = (await browser.pages())[0]; await page.locator('::-p-aria(Search)').fill('gamma'); await page.click(\"[role='option']\", { index: 2 }); return await page.data('#search', { snapshot: true });",
   "closeOnExit": true
 }
 ```
 
-Response:
+Response keys:
 - `sessionId`
 - `pageIds`
 - `logs`
 - `result`
 
-## SDK
-
-Local scripts can import the SDK from this repo:
-
-```js
-import { browser, server } from './sdk/index.mjs';
-
-await server.start();
-const page = await browser.newPage('https://developer.chrome.com/', { waitUntil: 'load' });
-page.on('console', (event) => console.log('PAGE LOG:', event.text));
-await page.setViewport({ width: 1080, height: 1024 });
-await page.locator('::-p-aria(Search)').fill('automate beyond recorder');
-await page.locator('.devsite-result-item-link').click({ waitUntil: 'load' });
-const title = await page.evaluate(() => document.title);
-console.log(title);
-await browser.close();
-server.stop();
-```
-
-Available SDK methods:
-- `server.start()`
-- `server.stop()`
-- `browser.newPage()`
-- `browser.pages()`
-- `browser.close()`
-- `page.goto()`
-- `page.reload()`
-- `page.setViewport()`
-- `page.locator()`
-- `page.click()`
-- `page.type()`
-- `page.keyboard.press()`
-- `page.select()`
-- `page.dragAndDrop()`
-- `page.scroll()`
-- `page.submit()`
-- `page.evaluate()`
-- `page.html()`
-- `page.data()`
-- `page.screenshot()`
-- `page.compare()`
-- `page.compareSelector()`
-- `page.frames()`
-- `page.frame(id)`
-- `page.close()`
-
 ## Output Shape
 
-Object-based fields stay object-based everywhere:
-- `classes`
-- `snapshot.classes`
-- `snapshot.style`
-- `diff.classes_diff`
-- `diff.styles_diff`
-- tree `styles`
-- tree diff `styles`
-
-Diff rules:
+- `classes`, `snapshot.classes`, `snapshot.style`, `diff.classes_diff`, `diff.styles_diff`, tree `styles`, and tree diff `styles` are key-value objects
 - `diff.classes_diff[className]` is `applied` or `missing class`
 - `diff.styles_diff[propertyName]` is that side’s changed computed value
-- `snapshot.tree` is keyed by node labels such as `< span >.title`
+- `snapshot.tree` is keyed by labels like `< span >.title`
 - `diff.tree_diff` contains only changed nodes and changed styles
-- `runs` is keyed by viewport, for example `runs["1024x700"]`
-- `snapshot` is omitted unless `"snapshot": true`
+- `runs` is keyed by viewport like `runs["1024x700"]`
+- `snapshot` is omitted unless you request it
 
-## Sample Pages
+## Included Example Pages
 
-Repo-local test pages are served from `/examples`:
 - `/examples/search.html`
 - `/examples/form.html`
 - `/examples/drag.html`
@@ -327,23 +221,24 @@ Runnable examples:
 - `npm run test:google`
 - `npm run test:sample`
 - `/Users/abeer/dev/chrome_extension_utils/examples/google-suite.mjs`
+- `/Users/abeer/dev/chrome_extension_utils/examples/sample-suite.mjs`
 - `/Users/abeer/dev/chrome_extension_utils/examples/boilerplate/run.mjs`
 
-## Google Example
+## Google Suite
 
-The Google suite demonstrates the intended search flow:
-- open `https://www.google.com/`
-- wait for the search field
-- type the query
-- wait for the suggestion list
-- click a visible suggestion
-- wait for the results state
-- scroll the results page
-- capture a screenshot
+The Google suite does this:
+- opens `https://www.google.com/`
+- waits for the search box
+- types the query
+- waits for the suggestion list
+- clicks a random visible suggestion
+- verifies a results selector exists
+- scrolls the results page
+- writes a screenshot to `/Users/abeer/dev/chrome_extension_utils/artifacts/google-suite.png`
 
 ## Notes
 
-- Page sessions are in memory and disappear if the server restarts or the extension page closes.
-- Each open extension page registers as a separate live instance.
-- The extension page lamp is the live connection indicator.
-- The server-side script runner and the local SDK both talk to the same live REST/socket API.
+- Each open extension page is a separate live instance
+- Page sessions are in memory and disappear if the server restarts or the extension page closes
+- The extension page must stay open while SDK or REST work is running
+- The packaged extension artifact is `/Users/abeer/dev/chrome_extension_utils/artifacts/ctm-puppet.crx`

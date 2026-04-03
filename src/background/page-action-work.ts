@@ -1,9 +1,9 @@
 import { readCompareResult, readInspectResult } from '@/src/background/result-shape';
-import { capturePageTab, reloadPageTab, runPageAction, updatePageTab } from '@/src/background/tab-work';
+import { captureLiveTab, reloadPageTab, runPageAction, updatePageTab } from '@/src/background/tab-work';
 import { saveRecord, readRecord, patchLivePage } from '@/src/background/page-store';
 import { closeLiveSessionPage, LiveEmit, readLiveHtml, readLiveShot, readPageState, readPublicPage, refreshPageMeta, updatePageStatus } from '@/src/background/page-session-work';
 import { resizeViewport } from '@/src/background/debugger-work';
-import { saveInterceptRule } from '@/src/background/intercept-work';
+import { resolveInterceptRequest, saveInterceptRule, setRequestInterception } from '@/src/background/intercept-work';
 import { PageAction } from '@/src/shared/page-action';
 import { LivePage } from '@/src/shared/page-session';
 
@@ -14,7 +14,7 @@ const readPage = (pageId: string) => {
 };
 const readCapture = async (pageId: string, selector: string, path: string) => {
     const page = readPage(pageId);
-    return capturePageTab(page.tabId || 0, selector, path);
+    return captureLiveTab(page.tabId || 0, selector, path);
 };
 const readBound = (action: PageAction, pages: Record<string, string>) => {
     if (action.pageId || !action.role) return action;
@@ -93,6 +93,11 @@ export const runLiveAction = async (action: PageAction, emit: LiveEmit) => {
         await saveInterceptRule(page.tabId || 0, action, page.sessionId);
         return readResult(action, { pageId: page.pageId, ruleId: action.ruleId || '' });
     }
+    if (action.type === 'set_request_interception') {
+        const page = readPage(action.pageId || '');
+        return readResult(action, await setRequestInterception(page.tabId || 0, page.pageId, page.sessionId, Boolean(action.enabled)));
+    }
+    if (action.type === 'resolve_request') return readResult(action, await resolveInterceptRequest(action.pageId || '', action));
     const page = readPage(action.pageId || '');
     const data = await runPageAction(page.tabId || 0, action);
     return readResult(action, data);

@@ -1,4 +1,4 @@
-const base = process.env.HTML_INSPECT_SERVER_URL || 'http://127.0.0.1:4017';
+const base = process.env.CTM_PUPPET_SERVER_URL || 'http://127.0.0.1:4017';
 
 export const readBaseUrl = (value = '') => value || base;
 

@@ -1,6 +1,6 @@
 # Google Sample Suite
 
-This sample uses `google.com` only. It does not reference any product-specific app.
+This suite tests CTM Puppet against `google.com` using the live REST API.
 
 ## 1. Open One Live Page
 
@@ -16,7 +16,7 @@ curl -s -X POST http://127.0.0.1:4017/api/pages/open \
 
 Save the returned `pageId`.
 
-## 2. Search From The Home Page
+## 2. Type, Wait For Suggestions, Click A Suggestion
 
 ```bash
 curl -s -X POST http://127.0.0.1:4017/api/pages/actions \
@@ -24,28 +24,27 @@ curl -s -X POST http://127.0.0.1:4017/api/pages/actions \
   --data '{
     "actions": [
       { "type": "wait_for_selector", "pageId": "PAGE_ID", "selector": "textarea[name='\''q'\'']", "visible": true, "timeoutMs": 30000 },
-      { "type": "type_text", "pageId": "PAGE_ID", "selector": "textarea[name='\''q'\'']", "value": "html inspect chrome extension", "clearFirst": true },
+      { "type": "type_text", "pageId": "PAGE_ID", "selector": "textarea[name='\''q'\'']", "value": "ctm puppet chrome extension", "clearFirst": true },
       { "type": "wait_for_selector", "pageId": "PAGE_ID", "selector": "[role='\''listbox'\'']", "visible": true, "timeoutMs": 30000 },
-      { "type": "click", "pageId": "PAGE_ID", "selector": "[role='\''option'\'']", "index": 2 },
-      { "type": "wait_for_selector", "pageId": "PAGE_ID", "selector": "a h3", "visible": true, "timeoutMs": 30000 }
+      { "type": "click", "pageId": "PAGE_ID", "selector": "[role='\''option'\'']", "index": 1, "waitUntil": "networkidle2" },
+      { "type": "wait_for_selector", "pageId": "PAGE_ID", "selector": "#search, #center_col, a h3", "visible": true, "timeoutMs": 30000 }
     ]
   }'
 ```
 
-## 3. Scroll And Resize
+## 3. Scroll The Results
 
 ```bash
 curl -s -X POST http://127.0.0.1:4017/api/pages/actions \
   -H 'content-type: application/json' \
   --data '{
     "actions": [
-      { "type": "scroll", "pageId": "PAGE_ID", "y": 900, "behavior": "smooth" },
-      { "type": "change_screen_size", "pageId": "PAGE_ID", "width": 1024, "height": 700 }
+      { "type": "scroll", "pageId": "PAGE_ID", "deltaY": 900 }
     ]
   }'
 ```
 
-## 4. Read DOM Data
+## 4. Read Results Data
 
 ```bash
 curl -s -X POST http://127.0.0.1:4017/api/pages/data \
@@ -57,7 +56,7 @@ curl -s -X POST http://127.0.0.1:4017/api/pages/data \
   }'
 ```
 
-## 5. Read HTML
+## 5. Read Results HTML
 
 ```bash
 curl -s -X POST http://127.0.0.1:4017/api/pages/html \
@@ -68,7 +67,7 @@ curl -s -X POST http://127.0.0.1:4017/api/pages/html \
   }'
 ```
 
-## 6. Record And Diff A Selector
+## 6. Record And Diff The Search Box
 
 ```bash
 curl -s -X POST http://127.0.0.1:4017/api/pages/actions \

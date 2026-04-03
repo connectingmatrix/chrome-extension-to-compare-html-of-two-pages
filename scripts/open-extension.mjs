@@ -1,8 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 
-const configPath = new URL('../.html-inspect.local.json', import.meta.url);
-const serverUrl = process.env.HTML_INSPECT_SERVER_URL || 'http://127.0.0.1:4017';
+const configPath = new URL('../.ctm-puppet.local.json', import.meta.url);
+const serverUrl = process.env.CTM_PUPPET_SERVER_URL || 'http://127.0.0.1:4017';
 
 const readSavedUrl = async () => {
     try {
@@ -30,7 +30,7 @@ const readServerUrl = async () => {
 };
 
 const readExtensionUrl = async () => {
-    const provided = process.argv[2] || process.env.HTML_INSPECT_EXTENSION_URL || '';
+    const provided = process.argv[2] || process.env.CTM_PUPPET_EXTENSION_URL || '';
     if (provided) {
         await saveUrl(provided);
         return provided;
@@ -51,7 +51,7 @@ const readCommand = (extensionUrl) => {
 
 const extensionUrl = await readExtensionUrl();
 if (!extensionUrl) {
-    console.error('No extension URL is known. Pass it as the first argument or set HTML_INSPECT_EXTENSION_URL.');
+    console.error('No extension URL is known. Pass it as the first argument or set CTM_PUPPET_EXTENSION_URL.');
     process.exit(1);
 }
 

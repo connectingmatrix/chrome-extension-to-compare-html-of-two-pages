@@ -1,7 +1,7 @@
 import { readCompareResult, readInspectResult } from '@/src/background/result-shape';
 import { bindPageActions, runLiveActions } from '@/src/background/page-action-work';
 import { closeLiveSessionPage, listPageFrames, LiveEmit, openLivePages, readLiveHtml, readLiveShot, readPageState, readPublicPage } from '@/src/background/page-session-work';
-import { capturePageTab } from '@/src/background/tab-work';
+import { captureLiveTab, capturePageTab } from '@/src/background/tab-work';
 import { readSizes } from '@/src/shared/size-work';
 import { ComparePagesPayload, CompareSelectorPayload, InspectSelectorPayload, RemoteJob } from '@/src/shared/remote-types';
 
@@ -73,11 +73,11 @@ export const runRemoteJob = async (job: RemoteJob, instanceId: string, emit: Liv
         return { pages: items, sessionId: pages[0] ? pages[0].sessionId : payload.sessionId || '' };
     }
     if (job.kind === 'pages-actions') return { results: await runLiveActions((job.payload as any).actions || [], emit) };
-    if (job.kind === 'pages-data') return readInspectResult(await capturePageTab(readPageState((job.payload as any).pageId).tabId || 0, (job.payload as any).selector, (job.payload as any).path || 'root'), Boolean((job.payload as any).snapshot));
+    if (job.kind === 'pages-data') return readInspectResult(await captureLiveTab(readPageState((job.payload as any).pageId).tabId || 0, (job.payload as any).selector, (job.payload as any).path || 'root'), Boolean((job.payload as any).snapshot));
     if (job.kind === 'pages-diff') {
         const left = readPageState((job.payload as any).leftPageId);
         const right = readPageState((job.payload as any).rightPageId);
-        return readCompareResult(await capturePageTab(left.tabId || 0, (job.payload as any).leftSelector || (job.payload as any).selector, (job.payload as any).path || 'root'), await capturePageTab(right.tabId || 0, (job.payload as any).rightSelector || (job.payload as any).selector, (job.payload as any).path || 'root'), Boolean((job.payload as any).snapshot));
+        return readCompareResult(await captureLiveTab(left.tabId || 0, (job.payload as any).leftSelector || (job.payload as any).selector, (job.payload as any).path || 'root'), await captureLiveTab(right.tabId || 0, (job.payload as any).rightSelector || (job.payload as any).selector, (job.payload as any).path || 'root'), Boolean((job.payload as any).snapshot));
     }
     if (job.kind === 'pages-frames') return { items: await listPageFrames((job.payload as any).pageId) };
     if (job.kind === 'pages-html') return readLiveHtml((job.payload as any).pageId, (job.payload as any).selector || '', (job.payload as any).frameId || 0, (job.payload as any).index || 0);

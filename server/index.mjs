@@ -22,4 +22,4 @@ app.use('/examples', express.static(examplePath));
 app.use('/api', apiRoutes);
 app.use(sendReadme);
 attachSocketServer(server);
-server.listen(port, () => console.log(`HTML-Inspect server listening on ${port}`));
+server.listen(port, () => console.log(`CTM Puppet server listening on ${port}`));

@@ -1,5 +1,5 @@
 {
-  "name": "html-inspect",
+  "name": "ctm-puppet",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "server": "node server/index.mjs",
     "open:extension": "node scripts/open-extension.mjs",
     "test:google": "node examples/google-suite.mjs",
-    "test:sample": "node examples/boilerplate/run.mjs"
+    "test:sample": "node examples/sample-suite.mjs"
   },
   "dependencies": {
     "express": "^5.1.0",

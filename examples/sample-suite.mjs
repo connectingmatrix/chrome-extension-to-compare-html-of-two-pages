@@ -1,0 +1,19 @@
+import server from '../sdk/index.mjs';
+
+await server.start();
+const search = await browser.newPage('http://127.0.0.1:4017/examples/search.html', { waitUntil: 'load' });
+await search.locator("::-p-aria(Search)").fill('beta');
+await search.click("[role='option']", { index: 1 });
+await search.waitForSelector('#search');
+const searchTitle = await (await search.waitForSelector('#results-title')).evaluate((node) => node.textContent);
+const form = await browser.newPage('http://127.0.0.1:4017/examples/form.html', { waitUntil: 'load' });
+await form.type("input[name='name']", 'Abeer', { clearFirst: true });
+await form.select("select[name='country']", 'jp');
+await form.submit('#demo-form');
+const submitted = await (await form.waitForSelector('#submitted')).evaluate((node) => node.textContent);
+const left = await browser.newPage('http://127.0.0.1:4017/examples/compare-left.html', { waitUntil: 'load' });
+const right = await browser.newPage('http://127.0.0.1:4017/examples/compare-right.html', { waitUntil: 'load' });
+const diff = await left.compare(right, { selector: '.card', snapshot: true });
+console.log(JSON.stringify({ diffKeys: Object.keys(diff.left.diff.styles_diff || {}), searchTitle, submitted }, null, 2));
+await browser.close();
+server.stop();

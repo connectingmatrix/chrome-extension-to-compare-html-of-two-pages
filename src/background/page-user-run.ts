@@ -51,11 +51,7 @@ export const runUserAction = async (tabId: number, action: PageAction) => {
         return target;
     }
     if (action.type === 'select_option') {
-        const target = await runFrameScript(tabId, action.frameId || 0, runPageDomAction, [action]);
-        await clickPoint(tabId, target.x || 0, target.y || 0);
-        for (let step = 0; step < Math.abs(target.steps || 0); step += 1) await sendKey(tabId, (target.steps || 0) > 0 ? 'ArrowDown' : 'ArrowUp');
-        await sendKey(tabId, 'Enter');
-        return target;
+        return runFrameScript(tabId, action.frameId || 0, runPageDomAction, [action]);
     }
     throw new Error(`User action ${action.type} is not available.`);
 };

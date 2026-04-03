@@ -1,7 +1,10 @@
 {
-  "name": "html-inspect-boilerplate",
+  "name": "ctm-puppet-boilerplate",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "ctm-puppet": "file:../.."
+  },
   "scripts": {
     "start": "node ./run.mjs"
   }

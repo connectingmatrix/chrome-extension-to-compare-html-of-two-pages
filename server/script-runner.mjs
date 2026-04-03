@@ -11,8 +11,9 @@ const readConsole = (logs) => ({
 export const runScript = async (baseUrl, payload) => {
     const browser = new Browser(baseUrl);
     const logs = [];
-    const control = { start: async () => true, stop: async () => true };
+    const control = { start: async () => (globalThis.browser = browser, true), stop: async () => (delete globalThis.browser, true) };
     browser.sessionId = payload.sessionId || '';
+    await control.start();
     if (payload.pages && payload.pages.length) {
         for (const page of payload.pages) await browser.newPage(page.url, page);
     } else if (browser.sessionId) {
@@ -26,11 +27,13 @@ export const runScript = async (baseUrl, payload) => {
         ]);
         const pages = await browser.pages();
         if (payload.closeOnExit) await browser.close();
+        await control.stop();
         const pageIds = [];
         for (const page of pages) pageIds.push(page.pageId);
         return { logs, pageIds, result, sessionId: browser.sessionId };
     } catch (error) {
         if (payload.closeOnExit) await browser.close();
+        await control.stop();
         throw error;
     }
 };
