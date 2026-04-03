@@ -1,6 +1,6 @@
 import { readCompareResult, readInspectResult } from '@/src/background/result-shape';
 import { bindPageActions, runLiveActions } from '@/src/background/page-action-work';
-import { closeLiveSessionPage, LiveEmit, openLivePages, readLiveHtml, readLiveShot, readPageState, readPublicPage } from '@/src/background/page-session-work';
+import { closeLiveSessionPage, listPageFrames, LiveEmit, openLivePages, readLiveHtml, readLiveShot, readPageState, readPublicPage } from '@/src/background/page-session-work';
 import { capturePageTab } from '@/src/background/tab-work';
 import { readSizes } from '@/src/shared/size-work';
 import { ComparePagesPayload, CompareSelectorPayload, InspectSelectorPayload, RemoteJob } from '@/src/shared/remote-types';
@@ -77,9 +77,10 @@ export const runRemoteJob = async (job: RemoteJob, instanceId: string, emit: Liv
     if (job.kind === 'pages-diff') {
         const left = readPageState((job.payload as any).leftPageId);
         const right = readPageState((job.payload as any).rightPageId);
-        return readCompareResult(await capturePageTab(left.tabId || 0, (job.payload as any).selector, (job.payload as any).path || 'root'), await capturePageTab(right.tabId || 0, (job.payload as any).selector, (job.payload as any).path || 'root'), Boolean((job.payload as any).snapshot));
+        return readCompareResult(await capturePageTab(left.tabId || 0, (job.payload as any).leftSelector || (job.payload as any).selector, (job.payload as any).path || 'root'), await capturePageTab(right.tabId || 0, (job.payload as any).rightSelector || (job.payload as any).selector, (job.payload as any).path || 'root'), Boolean((job.payload as any).snapshot));
     }
-    if (job.kind === 'pages-html') return readLiveHtml((job.payload as any).pageId, (job.payload as any).selector || '');
+    if (job.kind === 'pages-frames') return { items: await listPageFrames((job.payload as any).pageId) };
+    if (job.kind === 'pages-html') return readLiveHtml((job.payload as any).pageId, (job.payload as any).selector || '', (job.payload as any).frameId || 0, (job.payload as any).index || 0);
     if (job.kind === 'pages-screenshot') return readLiveShot((job.payload as any).pageId, (job.payload as any).selector || '', Boolean((job.payload as any).fullPage));
     if (job.kind === 'pages-close') return closeLiveSessionPage((job.payload as any).pageId, emit);
     return readInspect(instanceId, job.payload as InspectSelectorPayload, emit);

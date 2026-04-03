@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Search Sample</title>
+  <style>
+    body { font: 16px/1.4 sans-serif; margin: 40px; }
+    [role="listbox"] { border: 1px solid #ccc; margin-top: 12px; max-width: 360px; padding: 0; }
+    [role="option"] { cursor: pointer; list-style: none; padding: 10px 12px; }
+    [role="option"]:hover { background: #f3f7ff; }
+    #results { display: none; margin-top: 24px; }
+    .result-card { border: 1px solid #ddd; margin-bottom: 12px; padding: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Search Sample</h1>
+  <label for="search-box">Search</label>
+  <input id="search-box" aria-label="Search" autocomplete="off" />
+  <ul id="suggestions" role="listbox">
+    <li role="option" data-target="alpha">alpha tools</li>
+    <li role="option" data-target="beta">beta workflows</li>
+    <li role="option" data-target="gamma">gamma layouts</li>
+  </ul>
+  <section id="results">
+    <h2 id="results-title">Results</h2>
+    <div id="search">
+      <div class="result-card">Result A</div>
+      <div class="result-card">Result B</div>
+      <div class="result-card">Result C</div>
+    </div>
+  </section>
+  <script>
+    const input = document.querySelector('#search-box');
+    const list = document.querySelector('#suggestions');
+    const results = document.querySelector('#results');
+    const title = document.querySelector('#results-title');
+    const apply = (value) => {
+      history.pushState({}, '', `?q=${encodeURIComponent(value)}`);
+      title.textContent = `Results for ${value}`;
+      results.style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    };
+    input.addEventListener('input', () => { list.hidden = !input.value.trim(); });
+    input.addEventListener('keydown', (event) => { if (event.key === 'Enter') apply(input.value.trim() || 'query'); });
+    for (const item of list.querySelectorAll('[role="option"]')) item.addEventListener('click', () => apply(item.dataset.target || item.textContent.trim()));
+  </script>
+</body>
+</html>

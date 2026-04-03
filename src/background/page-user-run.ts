@@ -1,0 +1,61 @@
+import { clickPoint, dragPoint, insertText, scrollPoint, sendChord, sendKey } from '@/src/background/input-work';
+import { runPageDomAction } from '@/src/background/page-dom-work';
+import { readPageTarget } from '@/src/background/page-target-read';
+import { runFrameScript } from '@/src/background/page-script-work';
+import { PageAction } from '@/src/shared/page-action';
+
+const readTarget = (tabId: number, action: PageAction, selector = '') => runFrameScript(tabId, action.frameId || 0, readPageTarget, [selector || action.selector || '', action.index || 0, true]);
+const clearField = async (tabId: number) => {
+    await sendChord(tabId, 'A', 4);
+    await sendKey(tabId, 'Backspace');
+    await sendChord(tabId, 'A', 2);
+    await sendKey(tabId, 'Backspace');
+};
+
+export const runUserAction = async (tabId: number, action: PageAction) => {
+    await chrome.tabs.update(tabId, { active: true });
+    if (action.type === 'click') {
+        const target = await readTarget(tabId, action);
+        if (!target.found) throw new Error(`No element matches ${action.selector || ''}`);
+        await clickPoint(tabId, target.x || 0, target.y || 0, action.button || 'left');
+        return target;
+    }
+    if (action.type === 'type_text') {
+        const target = await readTarget(tabId, action);
+        if (!target.found) throw new Error(`No element matches ${action.selector || ''}`);
+        await clickPoint(tabId, target.x || 0, target.y || 0);
+        if (action.clearFirst) await clearField(tabId);
+        await insertText(tabId, action.value || '');
+        return target;
+    }
+    if (action.type === 'send_key') {
+        if (action.selector) {
+            const target = await readTarget(tabId, action);
+            if (!target.found) throw new Error(`No element matches ${action.selector || ''}`);
+            await clickPoint(tabId, target.x || 0, target.y || 0);
+        }
+        await sendKey(tabId, action.key || '');
+        return { key: action.key || '' };
+    }
+    if (action.type === 'drag_drop') {
+        const left = await readTarget(tabId, action, action.sourceSelector || '');
+        const right = await readTarget(tabId, action, action.targetSelector || '');
+        if (!left.found || !right.found) throw new Error('Drag and drop requires both source and target.');
+        await dragPoint(tabId, { x: left.x || 0, y: left.y || 0 }, { x: right.x || 0, y: right.y || 0 });
+        return { left, right };
+    }
+    if (action.type === 'scroll') {
+        const tab = await chrome.tabs.get(tabId);
+        const target = action.selector ? await readTarget(tabId, action) : { x: (tab.width || 1200) / 2, y: (tab.height || 800) / 2 };
+        await scrollPoint(tabId, target.x || 0, target.y || 0, action.deltaX || action.x || 0, action.deltaY || action.y || 0);
+        return target;
+    }
+    if (action.type === 'select_option') {
+        const target = await runFrameScript(tabId, action.frameId || 0, runPageDomAction, [action]);
+        await clickPoint(tabId, target.x || 0, target.y || 0);
+        for (let step = 0; step < Math.abs(target.steps || 0); step += 1) await sendKey(tabId, (target.steps || 0) > 0 ? 'ArrowDown' : 'ArrowUp');
+        await sendKey(tabId, 'Enter');
+        return target;
+    }
+    throw new Error(`User action ${action.type} is not available.`);
+};

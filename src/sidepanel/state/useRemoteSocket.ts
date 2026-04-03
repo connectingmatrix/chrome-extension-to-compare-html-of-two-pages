@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { runRemoteJob } from '@/src/background/job-runner';
-import { setInterceptEmitter } from '@/src/background/intercept-work';
 import { closeAllLivePages } from '@/src/background/page-session-work';
+import { setLiveEmitter } from '@/src/background/live-event-work';
 import { readRuntimeApi } from '@/src/shared/extension-api';
 import { RemoteEvent, RemoteMessage, RemoteSettings } from '@/src/shared/remote-types';
 
@@ -79,7 +79,7 @@ export const useRemoteSocket = (loading: boolean, settings: RemoteSettings) => {
             addEntry(readText(error, 'Chrome runtime is not available.'), 'danger');
             return () => { closedRef.current = true; };
         }
-        setInterceptEmitter(emit);
+        setLiveEmitter(emit);
         const connect = () => {
             if (closedRef.current) return;
             setStatus('connecting');

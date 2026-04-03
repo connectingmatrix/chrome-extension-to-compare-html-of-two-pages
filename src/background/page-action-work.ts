@@ -20,7 +20,7 @@ const readBound = (action: PageAction, pages: Record<string, string>) => {
     if (action.pageId || !action.role) return action;
     return { ...action, pageId: pages[action.role] || '' };
 };
-const readResult = (action: PageAction, data = null, error = '') => ({ actionId: action.actionId || crypto.randomUUID(), data: data || undefined, error: error || undefined, ok: !error, pageId: action.pageId || '', type: action.type });
+const readResult = (action: PageAction, data = null, error = '') => ({ actionId: action.actionId || crypto.randomUUID(), data: data === null ? undefined : data, error: error || undefined, ok: !error, pageId: action.pageId || '', type: action.type });
 
 export const bindPageActions = (actions: PageAction[], pages: LivePage[]) => {
     const ids = {};
@@ -76,14 +76,14 @@ export const runLiveAction = async (action: PageAction, emit: LiveEmit) => {
     }
     if (action.type === 'navigate_to_url') {
         const page = updatePageStatus(action.pageId || '', 'navigating');
-        await updatePageTab(page.pageId ? page.tabId || 0 : 0, action.url || '');
+        await updatePageTab(page.pageId ? page.tabId || 0 : 0, action.url || '', action.waitUntil || 'load');
         const next = await refreshPageMeta(action.pageId || '');
         emit('page.navigated', readPublicPage(next), next.sessionId);
         return readResult(action, readPublicPage(next));
     }
     if (action.type === 'reload_page') {
         const page = updatePageStatus(action.pageId || '', 'reloading');
-        await reloadPageTab(page.pageId ? page.tabId || 0 : 0);
+        await reloadPageTab(page.pageId ? page.tabId || 0 : 0, action.waitUntil || 'load');
         const next = await refreshPageMeta(action.pageId || '');
         emit('page.reloaded', readPublicPage(next), next.sessionId);
         return readResult(action, readPublicPage(next));

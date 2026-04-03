@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8" /><title>Frame Child</title></head>
+<body>
+  <button id="frame-button">Inside Frame</button>
+  <div id="frame-result"></div>
+  <script>
+    document.querySelector('#frame-button').addEventListener('click', () => {
+      document.querySelector('#frame-result').textContent = 'clicked';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8" /><title>Intercept Sample</title></head>
+<body>
+  <button id="load-data">Load Data</button>
+  <pre id="result"></pre>
+  <script>
+    document.querySelector('#load-data').addEventListener('click', async () => {
+      const response = await fetch('/examples/mock.json');
+      document.querySelector('#result').textContent = await response.text();
+    });
+  </script>
+</body>
+</html>

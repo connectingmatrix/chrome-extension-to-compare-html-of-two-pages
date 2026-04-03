@@ -1,13 +1,22 @@
+import { ensureDebugEvents } from '@/src/background/debug-live-work';
 import { ScreenSize } from '@/src/shared/remote-types';
 
 const attached = new Set<number>();
+const enabled = new Set<number>();
 const version = '1.3';
 const readTarget = (tabId: number) => ({ tabId });
 
 export const ensureDebugTab = async (tabId: number) => {
-    if (attached.has(tabId)) return;
-    await chrome.debugger.attach(readTarget(tabId), version);
-    attached.add(tabId);
+    ensureDebugEvents();
+    if (!attached.has(tabId)) {
+        await chrome.debugger.attach(readTarget(tabId), version);
+        attached.add(tabId);
+    }
+    if (enabled.has(tabId)) return;
+    await chrome.debugger.sendCommand(readTarget(tabId), 'Page.enable');
+    await chrome.debugger.sendCommand(readTarget(tabId), 'Runtime.enable');
+    await chrome.debugger.sendCommand(readTarget(tabId), 'Network.enable');
+    enabled.add(tabId);
 };
 
 export const sendDebug = async (tabId: number, method: string, command = {}) => {
@@ -43,4 +52,5 @@ export const closeDebugTab = async (tabId: number) => {
     await clearViewport(tabId);
     await chrome.debugger.detach(readTarget(tabId));
     attached.delete(tabId);
+    enabled.delete(tabId);
 };

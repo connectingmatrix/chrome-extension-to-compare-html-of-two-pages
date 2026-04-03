@@ -2,7 +2,8 @@ export type RecordField = 'box' | 'classes' | 'html' | 'styles' | 'tree';
 export type ScrollBehaviorType = 'auto' | 'smooth';
 export type ButtonType = 'left' | 'middle' | 'right';
 export type InterceptMode = 'abort' | 'fulfill' | 'observe';
-export type PageActionType = 'change_screen_size' | 'click' | 'close_page' | 'drag_drop' | 'execute_script' | 'get_page_data' | 'get_page_diff' | 'get_page_html' | 'intercept_request' | 'navigate_to_url' | 'record_start' | 'record_stop' | 'reload_page' | 'screenshot_page' | 'scroll' | 'select_option' | 'send_key' | 'submit' | 'type_text' | 'wait_for_selector';
+export type WaitUntilType = 'domcontentloaded' | 'load' | 'networkidle0' | 'networkidle2';
+export type PageActionType = 'change_screen_size' | 'click' | 'close_page' | 'drag_drop' | 'execute_script' | 'get_page_data' | 'get_page_diff' | 'get_page_html' | 'intercept_request' | 'navigate_to_url' | 'record_start' | 'record_stop' | 'reload_page' | 'screenshot_page' | 'scroll' | 'select_option' | 'send_key' | 'submit' | 'type_text' | 'upload_files' | 'wait_for_selector';
 
 export interface InterceptMatch {
     method?: string;
@@ -24,6 +25,8 @@ export interface PageAction {
     clearFirst?: boolean;
     deltaX?: number;
     deltaY?: number;
+    files?: string[];
+    frameId?: number;
     fullPage?: boolean;
     fulfill?: InterceptFulfill;
     height?: number;
@@ -49,6 +52,7 @@ export interface PageAction {
     url?: string;
     value?: string;
     visible?: boolean;
+    waitUntil?: WaitUntilType;
     width?: number;
     x?: number;
     y?: number;

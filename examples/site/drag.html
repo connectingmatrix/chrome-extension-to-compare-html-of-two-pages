@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Drag Sample</title>
+  <style>
+    #source, #target { border: 1px solid #bbb; height: 120px; margin: 24px 0; padding: 16px; width: 220px; }
+    .card { background: #e8f0ff; cursor: grab; display: inline-block; padding: 8px 12px; }
+  </style>
+</head>
+<body>
+  <div id="source"><div class="card" draggable="true">Drag Me</div></div>
+  <div id="target">Drop Here</div>
+  <script>
+    const card = document.querySelector('.card');
+    card.addEventListener('dragstart', (event) => event.dataTransfer.setData('text/plain', 'Drag Me'));
+    document.querySelector('#target').addEventListener('dragover', (event) => event.preventDefault());
+    document.querySelector('#target').addEventListener('drop', (event) => {
+      event.preventDefault();
+      event.currentTarget.textContent = event.dataTransfer.getData('text/plain');
+    });
+  </script>
+</body>
+</html>

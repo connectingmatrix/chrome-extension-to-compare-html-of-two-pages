@@ -11,6 +11,11 @@ export const listLivePages = () => {
 
 export const readLivePage = (pageId: string) => pages.get(pageId) || null;
 
+export const readTabPage = (tabId: number) => {
+    for (const page of pages.values()) if (page.tabId === tabId) return { ...page, recordingIds: [...page.recordingIds] };
+    return null;
+};
+
 export const saveLivePage = (page: LivePage) => {
     pages.set(page.pageId, { ...page, recordingIds: [...page.recordingIds] });
     return readLivePage(page.pageId);

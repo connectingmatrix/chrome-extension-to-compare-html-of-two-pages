@@ -1,4 +1,5 @@
 import { captureScreenshot, resizeViewport } from '@/src/background/debugger-work';
+import { readPageFrames } from '@/src/background/page-frame-work';
 import { dropLivePage, listLivePages, patchLivePage, readLivePage, saveLivePage } from '@/src/background/page-store';
 import { closePageTab as closeTab, openPageTab, readPageBox, readPageHtml, readTabMeta } from '@/src/background/tab-work';
 import { readRemoteSettings } from '@/src/shared/remote-store';
@@ -26,7 +27,7 @@ export const openLivePages = async (instanceId: string, sessionId: string, items
     emit('session.opened', { instanceId, sessionId }, sessionId);
     for (const item of items) {
         const pageId = crypto.randomUUID();
-        const tabId = await openPageTab(item.url, settings.debugForeground);
+        const tabId = await openPageTab(item.url, settings.debugForeground, item.waitUntil || 'load');
         if (item.width && item.height) await resizeViewport(tabId, { height: item.height, name: item.role || 'page', width: item.width });
         const meta = await readTabMeta(tabId);
         const page = saveLivePage({ height: item.height || meta.height, instanceId, pageId, recordingIds: [], role: item.role || 'page', sessionId, status: 'ready', tabId, title: meta.title, url: meta.url, width: item.width || meta.width }) as LivePage;
@@ -57,9 +58,9 @@ export const refreshPageMeta = (pageId: string, status = 'ready') => readMeta(pa
 
 export const readPageState = (pageId: string) => readPage(pageId);
 
-export const readLiveHtml = async (pageId: string, selector = '') => {
+export const readLiveHtml = async (pageId: string, selector = '', frameId = 0, index = 0) => {
     const page = await readMeta(pageId);
-    return { html: await readPageHtml(page.tabId || 0, selector), pageId, selector, url: page.url };
+    return { html: await readPageHtml(page.tabId || 0, selector, frameId, index), pageId, selector, url: page.url };
 };
 
 export const readLiveShot = async (pageId: string, selector = '', fullPage = false) => {
@@ -67,4 +68,9 @@ export const readLiveShot = async (pageId: string, selector = '', fullPage = fal
     const box = selector ? await readPageBox(page.tabId || 0, selector) : null;
     const clip = !fullPage && box ? { height: Math.max(box.height, 1), scale: 1, width: Math.max(box.width, 1), x: Math.max(box.left, 0), y: Math.max(box.top, 0) } : null;
     return { dataBase64: await captureScreenshot(page.tabId || 0, clip), mimeType: 'image/png', pageId };
+};
+
+export const listPageFrames = async (pageId: string) => {
+    const page = readPage(pageId);
+    return readPageFrames(page.tabId || 0);
 };

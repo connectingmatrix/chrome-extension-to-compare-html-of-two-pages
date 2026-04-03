@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8" /><title>Upload Sample</title></head>
+<body>
+  <input id="file-input" type="file" />
+  <div id="file-list"></div>
+  <script>
+    document.querySelector('#file-input').addEventListener('change', (event) => {
+      const names = [];
+      for (const file of event.target.files || []) names.push(file.name);
+      document.querySelector('#file-list').textContent = names.join(', ');
+    });
+  </script>
+</body>
+</html>

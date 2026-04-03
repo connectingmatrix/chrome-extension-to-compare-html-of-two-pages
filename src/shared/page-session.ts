@@ -1,9 +1,11 @@
 import { PageAction } from '@/src/shared/page-action';
 
 export interface PageOpenItem {
+    frameId?: number;
     height?: number;
     role?: string;
     url: string;
+    waitUntil?: string;
     width?: number;
 }
 
@@ -24,6 +26,7 @@ export interface LivePage {
 export interface OpenPagesPayload {
     actions?: PageAction[];
     pages: PageOpenItem[];
+    sessionId?: string;
     snapshot?: boolean;
 }
 
@@ -51,12 +54,27 @@ export interface PageDiffPayload {
 }
 
 export interface PageHtmlPayload {
+    frameId?: number;
+    index?: number;
     pageId: string;
     selector?: string;
+}
+
+export interface PageFramesPayload {
+    pageId: string;
 }
 
 export interface PageScreenshotPayload {
     fullPage?: boolean;
     pageId: string;
     selector?: string;
+}
+
+export interface PageRunPayload {
+    args?: unknown[];
+    closeOnExit?: boolean;
+    pages?: PageOpenItem[];
+    script: string;
+    sessionId?: string;
+    timeoutMs?: number;
 }

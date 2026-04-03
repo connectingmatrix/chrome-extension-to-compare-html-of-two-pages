@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Form Sample</title>
+</head>
+<body>
+  <form id="demo-form">
+    <label>Name <input name="name" /></label>
+    <label>Country
+      <select name="country">
+        <option value="pk">Pakistan</option>
+        <option value="fr">France</option>
+        <option value="jp">Japan</option>
+      </select>
+    </label>
+    <button type="submit">Submit</button>
+  </form>
+  <div id="submitted"></div>
+  <script>
+    document.querySelector('#demo-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const data = new FormData(event.target);
+      document.querySelector('#submitted').textContent = `${data.get('name')} - ${data.get('country')}`;
+    });
+  </script>
+</body>
+</html>
