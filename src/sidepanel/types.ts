@@ -15,8 +15,20 @@ export interface DomNode {
 export interface Snapshot {
     selector: string;
     rootLabel: string;
+    html: string;
     tree: DomNode | null;
     error: string;
+}
+
+export interface NodeBox {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    top: number;
+    left: number;
+    right: number;
+    bottom: number;
 }
 
 export interface NodeDetail {
@@ -24,6 +36,8 @@ export interface NodeDetail {
     label: string;
     classes: string[];
     styles: Record<string, string>;
+    html: string;
+    box: NodeBox | null;
     error: string;
 }
 

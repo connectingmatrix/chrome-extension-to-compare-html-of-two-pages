@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { inspectNode, inspectTree, listTabs } from '@/src/sidepanel/lib/inspect';
 import { BrowserTab, NodeDetail, Snapshot } from '@/src/sidepanel/types';
 
-const emptyDetail: NodeDetail = { path: '', label: '', classes: [], styles: {}, error: '' };
-const emptySnapshot: Snapshot = { selector: '', rootLabel: '', tree: null, error: '' };
+const emptyDetail: NodeDetail = { path: '', label: '', classes: [], styles: {}, html: '', box: null, error: '' };
+const emptySnapshot: Snapshot = { selector: '', rootLabel: '', html: '', tree: null, error: '' };
 
 export const useDomCompare = () => {
     const [tabs, setTabs] = useState<BrowserTab[]>([]);

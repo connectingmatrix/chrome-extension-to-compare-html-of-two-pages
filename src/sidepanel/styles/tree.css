@@ -5,8 +5,14 @@
 .tree-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: 12px; }
 .tree-row:hover { background: #eef3fb; }
 .tree-row.is-selected { background: #e6efff; }
-.tree-row.is-found { background: #e4f7e7; }
+.tree-row.is-found { background: #e4f7e7; box-shadow: inset 0 0 0 1px #73b67a; }
 .tree-row.is-diff { background: #fff6be; }
+.tree-rails { display: flex; align-self: stretch; flex-shrink: 0; }
+.tree-guide, .tree-elbow { position: relative; width: 18px; min-height: 24px; }
+.tree-guide::before, .tree-elbow::before { content: ''; position: absolute; left: 8px; top: -12px; bottom: -12px; border-left: 1px solid #c9d3e6; }
+.tree-guide.is-gap::before { display: none; }
+.tree-elbow.is-last::before { bottom: 50%; }
+.tree-elbow::after { content: ''; position: absolute; left: 8px; top: 50%; width: 10px; border-top: 1px solid #c9d3e6; }
 .tree-label, .tree-toggle { border: 0; background: transparent; }
 .tree-label { flex: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; min-width: 0; padding: 0; text-align: left; cursor: pointer; }
 .tree-tag { overflow-wrap: anywhere; font-size: 13px; font-weight: 600; }

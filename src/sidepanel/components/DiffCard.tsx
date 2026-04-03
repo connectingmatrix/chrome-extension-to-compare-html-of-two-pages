@@ -13,17 +13,21 @@ export const DiffCard = ({ emptyText, rows, subtitle, title }: DiffCardProps) =>
 );
 
 const DiffCardBody = ({ emptyText, rows, subtitle, title }: DiffCardProps) => {
+    const [hideSame, setHideSame] = useState(true);
     const [search, setSearch] = useState('');
     const query = useDeferredValue(search).trim().toLowerCase();
-    const filtered = query
-        ? rows.filter((row) => `${row.name} ${row.value}`.toLowerCase().includes(query))
-        : rows;
+    const visible = hideSame ? rows.filter((row) => row.tone !== 'base') : rows;
+    const filtered = query ? visible.filter((row) => `${row.name} ${row.value}`.toLowerCase().includes(query)) : visible;
     return (
         <section className="panel">
             <div className="panel-head">
                 <strong>{title}</strong>
                 <span>{subtitle}</span>
             </div>
+            <label className="panel-option">
+                <input checked={hideSame} type="checkbox" onChange={(event) => setHideSame(event.target.checked)} />
+                <span>Hide same values</span>
+            </label>
             <input className="field panel-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search values" />
             <div className="diff-grid panel-scroll">
                 {filtered.length
@@ -33,7 +37,7 @@ const DiffCardBody = ({ emptyText, rows, subtitle, title }: DiffCardProps) => {
                               <span>{row.value || 'unset'}</span>
                           </div>
                       ))
-                    : <div className="empty">{rows.length ? 'No values match this search.' : emptyText}</div>}
+                    : <div className="empty">{visible.length ? 'No values match this search.' : emptyText}</div>}
             </div>
         </section>
     );

@@ -10,7 +10,7 @@ const sortRows = (rows: DiffRow[]): DiffRow[] => rows.sort((left, right) => read
 
 export const readClassRows = (detail: NodeDetail, other: NodeDetail): DiffRow[] => {
     const names = [...detail.classes, ...other.classes.filter((name) => !detail.classes.includes(name))];
-    return sortRows(names.map((name) => ({ name, value: name, tone: readTone(detail.classes.includes(name) ? name : '', other.classes.includes(name) ? name : '') })));
+    return sortRows(names.map((name) => ({ name, value: detail.classes.includes(name) ? name : '[CLASS N/A]', tone: readTone(detail.classes.includes(name) ? name : '', other.classes.includes(name) ? name : '') })));
 };
 
 export const readStyleRows = (detail: NodeDetail, other: NodeDetail): DiffRow[] =>

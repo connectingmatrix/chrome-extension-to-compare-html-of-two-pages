@@ -15,9 +15,9 @@ export const readDomSnapshot = (selector: string) => {
         items: readChildren(element).map((child, index) => readNode(child, `${path}.${index}`))
     });
     const root = document.querySelector(selector);
-    if (!root) return { selector, rootLabel: '', tree: null, error: `No element matches ${selector}` };
-    if (root.tagName.toLowerCase() === 'script') return { selector, rootLabel: '', tree: null, error: 'Script nodes are hidden from the tree.' };
-    return { selector, rootLabel: readLabel(root), tree: readNode(root, 'root'), error: '' };
+    if (!root) return { selector, rootLabel: '', html: '', tree: null, error: `No element matches ${selector}` };
+    if (root.tagName.toLowerCase() === 'script') return { selector, rootLabel: '', html: '', tree: null, error: 'Script nodes are hidden from the tree.' };
+    return { selector, rootLabel: readLabel(root), html: root.outerHTML, tree: readNode(root, 'root'), error: '' };
 };
 
 export const readNodeDetail = (selector: string, path: string) => {
@@ -35,12 +35,16 @@ export const readNodeDetail = (selector: string, path: string) => {
             .sort()
             .reduce<Record<string, string>>((result, name) => ({ ...result, [name]: computed.getPropertyValue(name).trim() }), {});
     };
+    const readBox = (element: Element) => {
+        const box = element.getBoundingClientRect();
+        return { x: box.x, y: box.y, width: box.width, height: box.height, top: box.top, left: box.left, right: box.right, bottom: box.bottom };
+    };
     let target = document.querySelector(selector);
-    if (!target) return { path, label: '', classes: [], styles: {}, error: `No element matches ${selector}` };
+    if (!target) return { path, label: '', classes: [], styles: {}, html: '', box: null, error: `No element matches ${selector}` };
     for (const part of path.split('.').slice(1)) {
         const child = readChildren(target)[Number(part)];
-        if (!child) return { path, label: '', classes: [], styles: {}, error: 'No matching node at this path.' };
+        if (!child) return { path, label: '', classes: [], styles: {}, html: '', box: null, error: 'No matching node at this path.' };
         target = child;
     }
-    return { path, label: readLabel(target), classes: Array.from(target.classList), styles: readStyles(target), error: '' };
+    return { path, label: readLabel(target), classes: Array.from(target.classList), styles: readStyles(target), html: target.outerHTML, box: readBox(target), error: '' };
 };
