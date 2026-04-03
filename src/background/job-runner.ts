@@ -1,46 +1,86 @@
-import { readClassRows, readStyleRows } from '@/src/sidepanel/lib/style-diff';
-import { readStructureMarks } from '@/src/sidepanel/lib/structure-diff';
-import { readPageData } from '@/src/background/tab-work';
+import { readCompareResult, readInspectResult } from '@/src/background/result-shape';
+import { bindPageActions, runLiveActions } from '@/src/background/page-action-work';
+import { closeLiveSessionPage, LiveEmit, openLivePages, readLiveHtml, readLiveShot, readPageState, readPublicPage } from '@/src/background/page-session-work';
+import { capturePageTab } from '@/src/background/tab-work';
 import { readSizes } from '@/src/shared/size-work';
 import { ComparePagesPayload, CompareSelectorPayload, InspectSelectorPayload, RemoteJob } from '@/src/shared/remote-types';
 
-const readCompareResult = (left: Awaited<ReturnType<typeof readPageData>>, right: Awaited<ReturnType<typeof readPageData>>) => ({
-    left,
-    right,
-    structureMarks: readStructureMarks(left.snapshot.tree, right.snapshot.tree),
-    classRows: readClassRows(left.detail, right.detail),
-    styleRows: readStyleRows(left.detail, right.detail)
-});
+const closePages = async (pages, emit: LiveEmit) => {
+    for (const page of pages) await closeLiveSessionPage(page.pageId, emit);
+};
+const readPages = async (pages, selector: string, path: string) => {
+    const left = await capturePageTab(pages[0].tabId || 0, selector, path);
+    const right = await capturePageTab(pages[1].tabId || 0, selector, path);
+    return { left, right };
+};
+const openTemp = (instanceId: string, urls, emit: LiveEmit) => openLivePages(instanceId, crypto.randomUUID(), urls, emit);
 
-const readSizedResults = async (payload: ComparePagesPayload | CompareSelectorPayload, path: string) => {
-    const sizes = readSizes(payload.sizes);
-    const runs = [];
-    for (const size of sizes) {
-        const left = await readPageData(payload.leftUrl, payload.selector || 'body', path, size);
-        const right = await readPageData(payload.rightUrl, payload.selector || 'body', path, size);
-        runs.push({ size, ...readCompareResult(left, right) });
+const readComparePair = async (instanceId: string, urls, actions, selector: string, path: string, snapshot: boolean, emit: LiveEmit) => {
+    const pages = await openTemp(instanceId, urls, emit);
+    try {
+        if (actions && actions.length) await runLiveActions(bindPageActions(actions, pages), emit);
+        const pair = await readPages(pages, selector, path);
+        return readCompareResult(pair.left, pair.right, snapshot);
+    } finally {
+        await closePages(pages, emit);
     }
-    return { runs };
 };
 
-const readComparePages = async (payload: ComparePagesPayload) => {
-    if (payload.sizes) return readSizedResults(payload, payload.path || 'root');
-    const left = await readPageData(payload.leftUrl, payload.selector || 'body', payload.path || 'root');
-    const right = await readPageData(payload.rightUrl, payload.selector || 'body', payload.path || 'root');
-    return readCompareResult(left, right);
+const readSizedCompare = async (instanceId: string, payload: ComparePagesPayload | CompareSelectorPayload, path: string, emit: LiveEmit) => {
+    const pages = await openTemp(instanceId, [{ role: 'left', url: payload.leftUrl }, { role: 'right', url: payload.rightUrl }], emit);
+    const runs = {};
+    try {
+        if (payload.actions && payload.actions.length) await runLiveActions(bindPageActions(payload.actions, pages), emit);
+        for (const size of readSizes(payload.sizes)) {
+            await runLiveActions([{ actionId: crypto.randomUUID(), height: size.height, pageId: pages[0].pageId, type: 'change_screen_size', width: size.width }, { actionId: crypto.randomUUID(), height: size.height, pageId: pages[1].pageId, type: 'change_screen_size', width: size.width }], emit);
+            const pair = await readPages(pages, payload.selector || 'body', path);
+            runs[`${size.width}x${size.height}`] = readCompareResult(pair.left, pair.right, Boolean(payload.snapshot));
+        }
+        return { runs };
+    } finally {
+        await closePages(pages, emit);
+    }
 };
 
-const readCompareSelector = async (payload: CompareSelectorPayload) => {
-    if (payload.sizes) return readSizedResults(payload, 'root');
-    const left = await readPageData(payload.leftUrl, payload.selector, 'root');
-    const right = await readPageData(payload.rightUrl, payload.selector, 'root');
-    return readCompareResult(left, right);
+const readInspect = async (instanceId: string, payload: InspectSelectorPayload, emit: LiveEmit) => {
+    const pages = await openTemp(instanceId, [{ role: 'page', url: payload.url }], emit);
+    try {
+        if (payload.actions && payload.actions.length) await runLiveActions(bindPageActions(payload.actions, pages), emit);
+        return readInspectResult(await capturePageTab(pages[0].tabId || 0, payload.selector, payload.path || 'root'), Boolean(payload.snapshot));
+    } finally {
+        await closePages(pages, emit);
+    }
 };
 
-const readInspectSelector = async (payload: InspectSelectorPayload) => readPageData(payload.url, payload.selector, payload.path || 'root');
-
-export const runRemoteJob = async (job: RemoteJob) => {
-    if (job.kind === 'compare-pages') return readComparePages(job.payload as ComparePagesPayload);
-    if (job.kind === 'compare-selector') return readCompareSelector(job.payload as CompareSelectorPayload);
-    return readInspectSelector(job.payload as InspectSelectorPayload);
+export const runRemoteJob = async (job: RemoteJob, instanceId: string, emit: LiveEmit) => {
+    if (job.kind === 'compare-pages') {
+        const payload = job.payload as ComparePagesPayload;
+        if (payload.sizes) return readSizedCompare(instanceId, payload, payload.path || 'root', emit);
+        return readComparePair(instanceId, [{ role: 'left', url: payload.leftUrl }, { role: 'right', url: payload.rightUrl }], payload.actions || [], payload.selector || 'body', payload.path || 'root', Boolean(payload.snapshot), emit);
+    }
+    if (job.kind === 'compare-selector') {
+        const payload = job.payload as CompareSelectorPayload;
+        if (payload.sizes) return readSizedCompare(instanceId, payload, 'root', emit);
+        return readComparePair(instanceId, [{ role: 'left', url: payload.leftUrl }, { role: 'right', url: payload.rightUrl }], payload.actions || [], payload.selector, 'root', Boolean(payload.snapshot), emit);
+    }
+    if (job.kind === 'inspect-selector') return readInspect(instanceId, job.payload as InspectSelectorPayload, emit);
+    if (job.kind === 'pages-open') {
+        const payload = job.payload as any;
+        const pages = await openLivePages(instanceId, payload.sessionId || crypto.randomUUID(), payload.pages || [], emit);
+        if (payload.actions && payload.actions.length) await runLiveActions(bindPageActions(payload.actions, pages), emit);
+        const items = [];
+        for (const page of pages) items.push(readPublicPage(page));
+        return { pages: items, sessionId: pages[0] ? pages[0].sessionId : payload.sessionId || '' };
+    }
+    if (job.kind === 'pages-actions') return { results: await runLiveActions((job.payload as any).actions || [], emit) };
+    if (job.kind === 'pages-data') return readInspectResult(await capturePageTab(readPageState((job.payload as any).pageId).tabId || 0, (job.payload as any).selector, (job.payload as any).path || 'root'), Boolean((job.payload as any).snapshot));
+    if (job.kind === 'pages-diff') {
+        const left = readPageState((job.payload as any).leftPageId);
+        const right = readPageState((job.payload as any).rightPageId);
+        return readCompareResult(await capturePageTab(left.tabId || 0, (job.payload as any).selector, (job.payload as any).path || 'root'), await capturePageTab(right.tabId || 0, (job.payload as any).selector, (job.payload as any).path || 'root'), Boolean((job.payload as any).snapshot));
+    }
+    if (job.kind === 'pages-html') return readLiveHtml((job.payload as any).pageId, (job.payload as any).selector || '');
+    if (job.kind === 'pages-screenshot') return readLiveShot((job.payload as any).pageId, (job.payload as any).selector || '', Boolean((job.payload as any).fullPage));
+    if (job.kind === 'pages-close') return closeLiveSessionPage((job.payload as any).pageId, emit);
+    return readInspect(instanceId, job.payload as InspectSelectorPayload, emit);
 };

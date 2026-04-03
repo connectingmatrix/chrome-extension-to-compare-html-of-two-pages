@@ -5,7 +5,11 @@ const readValid = (item: Partial<ScreenSize>) => item && Number(item.width) > 0 
 export const readSizes = (input?: ScreenSizeInput): ScreenSize[] => {
     if (!input) return [];
     if (input === 'all') return presetSizes;
-    return input
-        .filter(readValid)
-        .map((item, index) => ({ name: item.name || `size-${index + 1}`, width: Number(item.width), height: Number(item.height) }));
+    const items: ScreenSize[] = [];
+    for (let index = 0; index < input.length; index += 1) {
+        const item = input[index];
+        if (!readValid(item)) continue;
+        items.push({ height: Number(item.height), name: item.name || `size-${index + 1}`, width: Number(item.width) });
+    }
+    return items;
 };

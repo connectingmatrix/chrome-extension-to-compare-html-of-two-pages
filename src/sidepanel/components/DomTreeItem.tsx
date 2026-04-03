@@ -22,7 +22,7 @@ export const DomTreeItem = ({ depth, expanded, found, item, isLast, lineage, mar
     const match = found[item.path] && !selected;
     return (
         <li className="tree-node">
-            <div className={`tree-row${selected ? ' is-selected' : ''}${diff ? ' is-diff' : ''}${match ? ' is-found' : ''}`}>
+            <div className={`tree-row${selected ? ' is-selected' : ''}${diff ? ' is-diff' : ''}${match ? ' is-found' : ''}`} data-path={item.path}>
                 <span className="tree-rails" aria-hidden="true">
                     {lineage.map((connected, index) => <span key={index} className={`tree-guide${connected ? '' : ' is-gap'}`} />)}
                     {depth ? <span className={`tree-elbow${isLast ? ' is-last' : ''}`} /> : null}

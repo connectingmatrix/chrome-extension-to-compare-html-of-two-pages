@@ -1,10 +1,16 @@
 import { BrowserTab } from '@/src/sidepanel/types';
+import { RemoteEvent } from '@/src/shared/remote-types';
+import { RemoteLamp } from '@/src/sidepanel/components/RemoteLamp';
 
 interface ToolbarProps {
     leftTabId: number;
     rightTabId: number;
     selector: string;
     loading: boolean;
+    remoteEntries: RemoteEvent[];
+    remoteInstanceId: string;
+    remoteServerUrl: string;
+    remoteStatus: 'connected' | 'connecting' | 'disconnected';
     tabs: BrowserTab[];
     onInspect: () => void;
     onRefresh: () => void;
@@ -28,7 +34,7 @@ const SettingsIcon = () => (
     </svg>
 );
 
-export const Toolbar = ({ leftTabId, rightTabId, selector, loading, showOpenInTab, tabs, onInspect, onRefresh, onLeftTabChange, onRightTabChange, onSelectorChange, onOpenInTab, onToggleSettings }: ToolbarProps) => (
+export const Toolbar = ({ leftTabId, rightTabId, selector, loading, remoteEntries, remoteInstanceId, remoteServerUrl, remoteStatus, showOpenInTab, tabs, onInspect, onRefresh, onLeftTabChange, onRightTabChange, onSelectorChange, onOpenInTab, onToggleSettings }: ToolbarProps) => (
     <section className="toolbar">
         <label className="control"><span>Left tab</span><select className="field" value={leftTabId || ''} onChange={(event) => onLeftTabChange(Number(event.target.value) || 0)}><option value="">Select</option>{tabs.map((tab) => <option key={tab.id} value={tab.id}>{tab.title}</option>)}</select></label>
         <label className="control"><span>Right tab</span><select className="field" value={rightTabId || ''} onChange={(event) => onRightTabChange(Number(event.target.value) || 0)}><option value="">Select</option>{tabs.map((tab) => <option key={tab.id} value={tab.id}>{tab.title}</option>)}</select></label>
@@ -36,6 +42,7 @@ export const Toolbar = ({ leftTabId, rightTabId, selector, loading, showOpenInTa
         <div className="toolbar-actions">
             <button aria-label="Refresh tabs" className="btn subtle icon-btn" type="button" onClick={onRefresh}><RefreshIcon /></button>
             {showOpenInTab ? <button className="btn subtle toolbar-open" type="button" onClick={onOpenInTab}>Open in tab</button> : null}
+            <RemoteLamp entries={remoteEntries} instanceId={remoteInstanceId} serverUrl={remoteServerUrl} status={remoteStatus} />
             <button aria-label="Open settings" className="btn subtle icon-btn" type="button" onClick={onToggleSettings}><SettingsIcon /></button>
         </div>
         <button className="btn" type="button" disabled={loading} onClick={onInspect}>{loading ? 'Inspecting...' : 'Inspect DOM'}</button>

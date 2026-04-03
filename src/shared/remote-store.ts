@@ -1,14 +1,15 @@
 import { RemoteSettings, remoteServerUrl, remoteSettingsKey } from '@/src/shared/remote-types';
+import { readStorageLocal } from '@/src/shared/extension-api';
 
-const readSeed = (): RemoteSettings => ({ instanceId: crypto.randomUUID(), remoteEnabled: false, serverUrl: remoteServerUrl });
+const readSeed = (): RemoteSettings => ({ debugForeground: false, remoteEnabled: true, serverUrl: remoteServerUrl, updatedAt: 0 });
 const readLocal = <T,>(key: string) => new Promise<T>((resolve, reject) => {
-    chrome.storage.local.get(key, (items) => {
+    readStorageLocal().get(key, (items) => {
         if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
         else resolve(items[key] as T);
     });
 });
 const writeLocal = (value: Record<string, unknown>) => new Promise<void>((resolve, reject) => {
-    chrome.storage.local.set(value, () => {
+    readStorageLocal().set(value, () => {
         if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
         else resolve();
     });
@@ -16,15 +17,21 @@ const writeLocal = (value: Record<string, unknown>) => new Promise<void>((resolv
 
 export const readRemoteSettings = async (): Promise<RemoteSettings> => {
     const saved = await readLocal<Partial<RemoteSettings>>(remoteSettingsKey);
-    const settings = { ...readSeed(), ...saved };
-    if (saved && saved.instanceId) return settings;
+    let settings = { ...readSeed(), ...saved };
+    if (saved) {
+        if (!saved.updatedAt && !saved.remoteEnabled) settings = { ...settings, remoteEnabled: true };
+        if (!saved.updatedAt && saved.debugForeground === undefined) settings = { ...settings, debugForeground: false };
+        if (saved.debugForeground !== settings.debugForeground || saved.serverUrl !== settings.serverUrl || saved.remoteEnabled !== settings.remoteEnabled || saved.updatedAt !== settings.updatedAt) await writeLocal({ [remoteSettingsKey]: settings });
+        return settings;
+    }
     await writeLocal({ [remoteSettingsKey]: settings });
     return settings;
 };
 
 export const saveRemoteSettings = async (settings: RemoteSettings): Promise<RemoteSettings> => {
-    await writeLocal({ [remoteSettingsKey]: settings });
-    return settings;
+    const next = { ...settings, updatedAt: Date.now() };
+    await writeLocal({ [remoteSettingsKey]: next });
+    return next;
 };
 
 export { remoteSettingsKey };

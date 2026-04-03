@@ -1,9 +1,11 @@
 import express from 'express';
+import http from 'node:http';
 import apiRoutes from './api-routes.mjs';
-import extensionRoutes from './extension-routes.mjs';
+import { attachSocketServer } from './socket-server.mjs';
 
 const app = express();
 const port = Number(process.env.PORT) || 4017;
+const server = http.createServer(app);
 
 app.use(express.json({ limit: '10mb' }));
 app.use((request, response, next) => {
@@ -14,5 +16,5 @@ app.use((request, response, next) => {
     next();
 });
 app.use('/api', apiRoutes);
-app.use('/api', extensionRoutes);
-app.listen(port, () => console.log(`HTML-DIFF server listening on ${port}`));
+attachSocketServer(server);
+server.listen(port, () => console.log(`HTML-Inspect server listening on ${port}`));

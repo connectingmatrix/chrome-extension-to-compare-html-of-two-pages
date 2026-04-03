@@ -1,5 +1,5 @@
 {
-  "name": "chrome-extension-utils",
+  "name": "html-inspect",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,8 @@
   "dependencies": {
     "express": "^5.1.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "ws": "^8.20.0"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.271",

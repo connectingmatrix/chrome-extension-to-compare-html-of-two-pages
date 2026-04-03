@@ -1,4 +1,14 @@
 export const readDomSnapshot = (selector: string) => {
+    const readStyles = (element: Element) => {
+        const computed = getComputedStyle(element);
+        const styles = [];
+        for (let index = 0; index < computed.length; index += 1) {
+            const name = computed.item(index);
+            styles.push({ name, value: computed.getPropertyValue(name).trim() });
+        }
+        styles.sort((left, right) => left.name.localeCompare(right.name));
+        return styles;
+    };
     const readLabel = (element: Element) => {
         const tag = element.tagName.toLowerCase();
         const tagLabel = `< ${tag} >`;
@@ -10,14 +20,15 @@ export const readDomSnapshot = (selector: string) => {
     const readNode = (element: Element, path: string): unknown => ({
         path,
         label: readLabel(element),
+        styles: readStyles(element),
         tag: element.tagName.toLowerCase(),
         classes: Array.from(element.classList),
         items: readChildren(element).map((child, index) => readNode(child, `${path}.${index}`))
     });
     const root = document.querySelector(selector);
-    if (!root) return { selector, rootLabel: '', html: '', tree: null, error: `No element matches ${selector}` };
-    if (root.tagName.toLowerCase() === 'script') return { selector, rootLabel: '', html: '', tree: null, error: 'Script nodes are hidden from the tree.' };
-    return { selector, rootLabel: readLabel(root), html: root.outerHTML, tree: readNode(root, 'root'), error: '' };
+    if (!root) return { selector, rootLabel: '', html: '', style: [], tree: null, error: `No element matches ${selector}` };
+    if (root.tagName.toLowerCase() === 'script') return { selector, rootLabel: '', html: '', style: [], tree: null, error: 'Script nodes are hidden from the tree.' };
+    return { selector, rootLabel: readLabel(root), html: root.outerHTML, style: readStyles(root), tree: readNode(root, 'root'), error: '' };
 };
 
 export const readNodeDetail = (selector: string, path: string) => {

@@ -3,7 +3,7 @@ import { inspectNode, inspectTree, listTabs } from '@/src/sidepanel/lib/inspect'
 import { BrowserTab, NodeDetail, Snapshot } from '@/src/sidepanel/types';
 
 const emptyDetail: NodeDetail = { path: '', label: '', classes: [], styles: {}, html: '', box: null, error: '' };
-const emptySnapshot: Snapshot = { selector: '', rootLabel: '', html: '', tree: null, error: '' };
+const emptySnapshot: Snapshot = { selector: '', rootLabel: '', html: '', style: [], tree: null, error: '' };
 
 export const useDomCompare = () => {
     const [tabs, setTabs] = useState<BrowserTab[]>([]);
@@ -19,10 +19,14 @@ export const useDomCompare = () => {
     const [rightDetail, setRightDetail] = useState<NodeDetail>(emptyDetail);
 
     const refreshTabs = async () => {
-        const nextTabs = await listTabs();
-        setTabs(nextTabs);
-        if (!leftTabId && nextTabs[0]) setLeftTabId(nextTabs[0].id);
-        if (!rightTabId && nextTabs[1]) setRightTabId(nextTabs[1].id);
+        try {
+            const nextTabs = await listTabs();
+            setTabs(nextTabs);
+            if (!leftTabId && nextTabs[0]) setLeftTabId(nextTabs[0].id);
+            if (!rightTabId && nextTabs[1]) setRightTabId(nextTabs[1].id);
+        } catch (cause) {
+            setError(cause instanceof Error ? cause.message : 'Could not read Chrome tabs.');
+        }
     };
 
     const readDetails = async (path: string, nextSelector: string, nextLeftTabId: number, nextRightTabId: number) => {

@@ -1,10 +1,48 @@
+import { PageAction } from '@/src/shared/page-action';
+import { LivePage, OpenPagesPayload, PageActionsPayload, PageClosePayload, PageDataPayload, PageDiffPayload, PageHtmlPayload, PageScreenshotPayload } from '@/src/shared/page-session';
+
 export interface RemoteSettings {
-    instanceId: string;
+    debugForeground: boolean;
     remoteEnabled: boolean;
     serverUrl: string;
+    updatedAt: number;
 }
 
-export type RemoteJobKind = 'compare-pages' | 'compare-selector' | 'inspect-selector';
+export interface RemoteEvent {
+    at: number;
+    text: string;
+    tone: 'base' | 'warn' | 'danger';
+}
+
+export interface RemoteInstance {
+    connectedAt: number;
+    events: RemoteEvent[];
+    extensionId: string;
+    extensionUrl: string;
+    id: string;
+    lastSeen: number;
+    pageUrl: string;
+    socketId: string;
+    status: 'connected' | 'connecting' | 'disconnected';
+}
+
+export interface RemoteMessage {
+    data?: Record<string, unknown>;
+    error?: string;
+    id?: string;
+    instance?: RemoteInstance;
+    instanceId?: string;
+    jobId?: string;
+    kind?: RemoteJobKind;
+    name?: string;
+    payload?: Record<string, unknown>;
+    progress?: string;
+    result?: Record<string, unknown>;
+    sessionId?: string;
+    type: string;
+}
+
+export type RemoteJobKind = 'compare-pages' | 'compare-selector' | 'inspect-selector' | 'pages-actions' | 'pages-active' | 'pages-close' | 'pages-data' | 'pages-diff' | 'pages-html' | 'pages-open' | 'pages-screenshot';
 export interface ScreenSize {
     height: number;
     name: string;
@@ -14,22 +52,28 @@ export interface ScreenSize {
 export type ScreenSizeInput = 'all' | ScreenSize[];
 
 export interface ComparePagesPayload {
+    actions?: PageAction[];
     leftUrl: string;
     path: string;
     rightUrl: string;
     selector: string;
+    snapshot?: boolean;
     sizes?: ScreenSizeInput;
 }
 
 export interface CompareSelectorPayload {
+    actions?: PageAction[];
     leftUrl: string;
     rightUrl: string;
     selector: string;
+    snapshot?: boolean;
     sizes?: ScreenSizeInput;
 }
 
 export interface InspectSelectorPayload {
+    actions?: PageAction[];
     path: string;
+    snapshot?: boolean;
     selector: string;
     url: string;
 }
@@ -47,3 +91,6 @@ export const presetSizes: ScreenSize[] = [
     { name: 'tablet', width: 1024, height: 1366 },
     { name: 'mobile', width: 390, height: 844 }
 ];
+
+export type LiveJobPayload = ComparePagesPayload | CompareSelectorPayload | InspectSelectorPayload | OpenPagesPayload | PageActionsPayload | PageClosePayload | PageDataPayload | PageDiffPayload | PageHtmlPayload | PageScreenshotPayload;
+export type { LivePage };

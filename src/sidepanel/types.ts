@@ -5,6 +5,7 @@ export interface BrowserTab {
 }
 
 export interface DomNode {
+    styles: StyleEntry[];
     path: string;
     label: string;
     tag: string;
@@ -13,6 +14,7 @@ export interface DomNode {
 }
 
 export interface Snapshot {
+    style: StyleEntry[];
     selector: string;
     rootLabel: string;
     html: string;
@@ -39,6 +41,11 @@ export interface NodeDetail {
     html: string;
     box: NodeBox | null;
     error: string;
+}
+
+export interface StyleEntry {
+    name: string;
+    value: string;
 }
 
 export interface DiffRow {

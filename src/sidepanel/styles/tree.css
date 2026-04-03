@@ -1,4 +1,5 @@
-.tree-pane { min-height: 360px; max-height: min(52vh, 760px); overflow: auto; }
+.tree-pane { overflow: hidden; }
+.tree-scroll { flex: 1; min-height: 0; overflow: auto; }
 .tree-search { margin-bottom: 12px; }
 .tree-list { list-style: none; margin: 0; padding: 0; }
 .tree-node + .tree-node { margin-top: 2px; }
@@ -18,5 +19,5 @@
 .tree-tag { overflow-wrap: anywhere; font-size: 13px; font-weight: 600; }
 .tree-meta { color: #6c7589; font-size: 11px; white-space: nowrap; }
 .tree-badge { padding: 3px 8px; border-radius: 999px; background: #f0b500; font-size: 11px; font-weight: 700; }
-.tree-toggle { width: 24px; height: 24px; cursor: pointer; }
+.tree-toggle { width: 34px; height: 34px; cursor: pointer; font-size: 18px; display: grid; place-items: center; }
 @media (max-width: 720px) { .tree-label { flex-direction: column; } .tree-meta { white-space: normal; } }
